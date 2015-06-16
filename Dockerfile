@@ -10,6 +10,9 @@ ADD apps/root/*.sh /root/
 # add bash script to run privoxy
 ADD apps/nobody/*.sh /home/nobody/
 
+# add bash scripts to install app, and setup iptables, routing etc
+ADD *.sh /root/
+
 # install app
 #############
 
