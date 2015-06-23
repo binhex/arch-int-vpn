@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# create directory
-mkdir -p /config/openvpn
-
 # if vpn set to "no" then don't run openvpn
 if [[ $VPN_ENABLED == "no" ]]; then
 
@@ -11,6 +8,9 @@ if [[ $VPN_ENABLED == "no" ]]; then
 else
 
 	echo "[info] VPN is enabled, beginning configuration of OpenVPN"
+
+	# create directory
+	mkdir -p /config/openvpn
 
 	# wildcard search for openvpn config files
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print)
