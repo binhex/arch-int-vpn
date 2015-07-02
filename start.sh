@@ -23,13 +23,16 @@ else
 	elif [[ $VPN_PROV == "airvpn" ]]; then
 
 		echo "[info] VPN provider defined as $VPN_PROV"
+		
 		if [[ -z "${VPN_CONFIG}" ]]; then
-			echo "[crit] VPN provider defined as $VPN_PROV, no files with an ovpn extension exist in /config/openvpn/ please create and restart delugevpn" && exit 1
+			echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 		fi
 
 	# if pia vpn provider chosen then copy base config file and pia certs
 	elif [[ $VPN_PROV == "pia" ]]; then
 
+		echo "[info] VPN provider defined as $VPN_PROV"
+		
 		# copy default certs
 		echo "[info] VPN provider defined as $VPN_PROV"
 		cp -f /home/nobody/ca.crt /config/openvpn/ca.crt
@@ -58,7 +61,7 @@ else
 
 		# if remote gateway and port defined then use both
 		else
-			echo "[info] VPN provider remote and port defined as $VPN_REMOTE $VPN_PORT"
+			echo "[info] VPN provider remote gateway and port defined as $VPN_REMOTE $VPN_PORT"
 			sed -i -e "s/remote\s.*/remote $VPN_REMOTE $VPN_PORT/g" "$VPN_CONFIG"
 		fi
 
@@ -69,14 +72,14 @@ else
 
 		# write vpn username to file
 		if [[ -z "${VPN_USER}" ]]; then
-			echo "[crit] VPN username not specified" && exit 1
+			echo "[crit] VPN username not specified, please specify using env variable VPN_USER" && exit 1
 		else
 			echo "${VPN_USER}" > /config/openvpn/credentials.conf
 		fi
 
 		# append vpn password to file
 		if [[ -z "${VPN_PASS}" ]]; then
-			echo "[crit] VPN password not specified" && exit 1
+			echo "[crit] VPN password not specified, please specify using env variable VPN_PASS" && exit 1
 		else
 			echo "${VPN_PASS}" >> /config/openvpn/credentials.conf
 		fi
@@ -85,8 +88,9 @@ else
 	elif [[ $VPN_PROV == "custom" ]]; then
 
 		echo "[info] VPN provider defined as $VPN_PROV"
+		
 		if [[ -z "${VPN_CONFIG}" ]]; then
-			echo "[crit] VPN provider defined as $VPN_PROV, no files with an ovpn extension exist in /config/openvpn/ please create and restart delugevpn" && exit 1
+			echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 		fi
 
 		# store credentials in separate file for authentication
@@ -96,21 +100,21 @@ else
 
 		# write vpn username to file
 		if [[ -z "${VPN_USER}" ]]; then
-			echo "[crit] VPN username not specified" && exit 1
+			echo "[crit] VPN username not specified, please specify using env variable VPN_USER" && exit 1
 		else
 			echo "${VPN_USER}" > /config/openvpn/credentials.conf
 		fi
 
 		# append vpn password to file
 		if [[ -z "${VPN_PASS}" ]]; then
-			echo "[crit] VPN password not specified" && exit 1
+			echo "[crit] VPN password not specified, please specify using env variable VPN_PASS" && exit 1
 		else
 			echo "${VPN_PASS}" >> /config/openvpn/credentials.conf
 		fi
 
 	# if provider none of the above then exit
 	else
-		echo "[crit] VPN provider unknown, please specify airvpn, pia, or custom" && exit 1
+		echo "[crit] VPN provider $VPN_PROV not recognised, please specify airvpn, pia, or custom using env variable VPN_PROV" && exit 1
 	fi
 
 	# customise ovpn file to ping tunnel every 5 mins
