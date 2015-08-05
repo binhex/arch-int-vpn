@@ -117,16 +117,6 @@ else
 		echo "[crit] VPN provider ${VPN_PROV} not recognised, please specify airvpn, pia, or custom using env variable VPN_PROV" && exit 1
 	fi
 
-	# customise ovpn file to ping tunnel every 5 mins
-	if ! $(grep -Fxq "ping 300" "${VPN_CONFIG}"); then
-		sed -i '/remote\s.*/a ping 300' "${VPN_CONFIG}"
-	fi
-
-	# customise ovpn file to restart tunnel after 10 mins if no reply from ping (twice)
-	if ! $(grep -Fxq "ping-restart 600" "${VPN_CONFIG}"); then
-		sed -i '/ping 300/a ping-restart 600' "${VPN_CONFIG}"
-	fi
-
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
 	if $(grep -Fq "persist-tun" "${VPN_CONFIG}"); then
 		sed -i '/persist-tun/d' "${VPN_CONFIG}"
