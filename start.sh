@@ -117,6 +117,11 @@ else
 		echo "[crit] VPN provider ${VPN_PROV} not recognised, please specify airvpn, pia, or custom using env variable VPN_PROV" && exit 1
 	fi
 
+	# remove ping and ping-restart from ovpn file if present, now using flag --keepalive
+	if $(grep -Fq "ping" "${VPN_CONFIG}"); then
+		sed -i '/ping.*/d' "${VPN_CONFIG}"
+	fi
+
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
 	if $(grep -Fq "persist-tun" "${VPN_CONFIG}"); then
 		sed -i '/persist-tun/d' "${VPN_CONFIG}"
