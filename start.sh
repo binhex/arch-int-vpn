@@ -23,7 +23,7 @@ else
 	elif [[ "${VPN_PROV}" == "airvpn" ]]; then
 
 		echo "[info] VPN provider defined as ${VPN_PROV}"
-		
+
 		if [[ -z "${VPN_CONFIG}" ]]; then
 			echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 		fi
@@ -32,7 +32,7 @@ else
 	elif [[ "${VPN_PROV}" == "pia" ]]; then
 
 		echo "[info] VPN provider defined as ${VPN_PROV}"
-		
+
 		# copy default certs
 		echo "[info] VPN provider defined as ${VPN_PROV}"
 		cp -f /home/nobody/ca.crt /config/openvpn/ca.crt
@@ -88,7 +88,7 @@ else
 	elif [[ "${VPN_PROV}" == "custom" ]]; then
 
 		echo "[info] VPN provider defined as ${VPN_PROV}"
-		
+
 		if [[ -z "${VPN_CONFIG}" ]]; then
 			echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 		fi
@@ -129,7 +129,7 @@ else
 
 	# read port number and protocol from ovpn file (used to define iptables rule)
 	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^remote\s[^\r\n]+' | grep -P -o -m 1 '[\d]+$')
-	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=proto\s)[^\r\n]+')
+	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote|proto).*' | grep -P -o -m 1 'udp|tcp')
 
 	# set permissions to user nobody
 	chown -R nobody:users /config/openvpn
