@@ -128,8 +128,22 @@ else
 	fi
 
 	# read port number and protocol from ovpn file (used to define iptables rule)
-	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^remote\s[^\r\n]+' | grep -P -o -m 1 '[\d]+$')
-	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote|proto).*' | grep -P -o -m 1 'udp|tcp')
+	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\r\n]+' | grep -P -o -m 1 '(?<=\s)[\d]+(?=\s)')
+	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s|proto\s)[^\r\n]+' | grep -P -o -m 1 'udp|tcp')
+
+	# check vpn port is defined
+	if [[ -z "${VPN_PORT}" ]]; then
+		echo "[crit] VPN port not found in ovpn file, please check ovpn file for port number of gateway" && exit 1
+	else
+		echo "[info] VPN port number from ovpn file is $VPN_PORT"
+	fi
+
+	# check vpn protocol is defined
+	if [[ -z "${VPN_PROTOCOL}" ]]; then
+		echo "[crit] VPN protocol not found in ovpn file, please check ovpn file for protocol" && exit 1
+	else
+		echo "[info] VPN tunnel protocol from ovpn file is $VPN_PROTOCOL"
+	fi
 
 	# set permissions to user nobody
 	chown -R nobody:users /config/openvpn
