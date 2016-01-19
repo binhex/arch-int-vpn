@@ -40,7 +40,6 @@ else
 		echo "[info] VPN provider defined as ${VPN_PROV}"
 
 		# copy default certs
-		echo "[info] VPN provider defined as ${VPN_PROV}"
 		cp -f /home/nobody/ca.crt /config/openvpn/ca.crt
 		cp -f /home/nobody/crl.pem /config/openvpn/crl.pem
 
@@ -139,31 +138,35 @@ else
 		sed -i '/persist-tun/d' "${VPN_CONFIG}"
 	fi
 
-	
 	# read port number and protocol from ovpn file (used to define iptables rule)
 	VPN_REMOTE=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\s]+')
-	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\r\n]+' | grep -P -o -m 1 '(?<=\s)[\d]{2,5}(?=[\r\n\s])')
-	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s|proto\s)[^\r\n]+' | grep -P -o -m 1 'udp|tcp')
-
+	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 '(?<=\s)[\d]{2,5}(?=[\s])|[\d]{2,5}$')
+	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 'udp|tcp')
+	
+	# if vpn protocol not defined for remote line then assume defined using proto line
+	if [[ -z "${VPN_PROTOCOL}" ]]; then
+		VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=proto\s).*$' | grep -P -o -m 1 'udp|tcp')
+	fi
+	
 	# check vpn remote host is defined
 	if [[ -z "${VPN_REMOTE}" ]]; then
-		echo "[crit] VPN remote host not found in ovpn file, please check ovpn file for remote gateway" && exit 1
+		echo "[crit] VPN provider remote gateway not found in ovpn file, please check ovpn file for remote gateway" && exit 1
 	else
-		echo "[info] VPN remote host from ovpn file is $VPN_REMOTE"
+		echo "[info] VPN provider remote gateway from ovpn file is $VPN_REMOTE"
 	fi
 
 	# check vpn port is defined
 	if [[ -z "${VPN_PORT}" ]]; then
-		echo "[crit] VPN port not found in ovpn file, please check ovpn file for port number of gateway" && exit 1
+		echo "[crit] VPN provider port not found in ovpn file, please check ovpn file for port number of gateway" && exit 1
 	else
-		echo "[info] VPN port number from ovpn file is $VPN_PORT"
+		echo "[info] VPN provider port number from ovpn file is $VPN_PORT"
 	fi
 
 	# check vpn protocol is defined
 	if [[ -z "${VPN_PROTOCOL}" ]]; then
-		echo "[crit] VPN protocol not found in ovpn file, please check ovpn file for protocol" && exit 1
+		echo "[crit] VPN provider protocol not found in ovpn file, please check ovpn file for protocol" && exit 1
 	else
-		echo "[info] VPN tunnel protocol from ovpn file is $VPN_PROTOCOL"
+		echo "[info] VPN provider protocol from ovpn file is $VPN_PROTOCOL"
 	fi	
 
 	# set permissions to user nobody
