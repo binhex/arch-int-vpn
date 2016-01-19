@@ -130,7 +130,7 @@ else
 	
 	# read port number and protocol from ovpn file (used to define iptables rule)
 	VPN_REMOTE=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\s]+')
-	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\r\n]+' | grep -P -o -m 1 '(?<=\s)[\d]{3,5}')
+	VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\r\n]+' | grep -P -o -m 1 '(?<=\s)[\d]{2,5}(?=[\r\n\s])')
 	VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s|proto\s)[^\r\n]+' | grep -P -o -m 1 'udp|tcp')
 
 	# check vpn remote host is defined
