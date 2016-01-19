@@ -11,7 +11,10 @@ else
 
 	# create directory
 	mkdir -p /config/openvpn
-
+	
+	# set rw for all users recursively in /config/openvpn
+	chmod -R a+rw /config/openvpn/*
+	
 	# wildcard search for openvpn config files
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print)
 
@@ -27,7 +30,10 @@ else
 		if [[ -z "${VPN_CONFIG}" ]]; then
 			echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 		fi
-
+		
+		# convert CRLF (windows) to LF (unix)
+		tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
+		
 	# if pia vpn provider chosen then copy base config file and pia certs
 	elif [[ "${VPN_PROV}" == "pia" ]]; then
 
@@ -43,6 +49,9 @@ else
 			cp -f "/home/nobody/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
 			VPN_CONFIG="/config/openvpn/openvpn.ovpn"
 		fi
+
+		# convert CRLF (windows) to LF (unix)
+		tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
 
 		# if no remote gateway or port specified then use netherlands and default port
 		if [[ -z "${VPN_REMOTE}" && -z "${VPN_PORT}" ]]; then
@@ -92,6 +101,9 @@ else
 		if [[ -z "${VPN_CONFIG}" ]]; then
 			echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 		fi
+
+		# convert CRLF (windows) to LF (unix)
+		tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
 
 		# store credentials in separate file for authentication
 		if ! $(grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"); then
