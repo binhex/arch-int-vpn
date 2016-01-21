@@ -1,12 +1,32 @@
-OpenVPN + Privoxy
-=================
-OpenVPN - https://openvpn.net/
-Privoxy - http://www.privoxy.org/
+**Application**
 
-Latest stable OpenVPN release for Arch Linux to tunnel traffic securely, this also included Privoxy to allow unfiltered http|https traffic via the VPN. This Docker image is to be used as a building block for other Docker images i.e. binhex/arch-delugevpn, binhex/arch-sabnzbdvpn, and binhex/arch-transmissionvpn.
+[OpenVPN](https://openvpn.net/)
+[Privoxy](http://www.privoxy.org/)
 
-**Pull image**
+**Application description**
 
-```
-docker pull binhex/arch-openvpn
-```
+OpenVPN is an open-source software application that implements virtual private network (VPN) techniques for creating secure point-to-point or site-to-site connections in routed or bridged configurations and remote access facilities. It uses a custom security protocol that utilizes SSL/TLS for key exchange.
+
+Privoxy is a non-caching web proxy with filtering capabilities for enhancing privacy, manipulating cookies and modifying web page data and HTTP headers before the page is rendered by the browser. Privoxy is a "privacy enhancing proxy", filtering Web pages and removing advertisements.
+
+**Build notes**
+
+Latest stable release from Arch Linux repo.
+
+**Usage**
+
+N/A, intermediate image used as a base for DelugeVPN and SABnzbdVPN.
+
+**Access application**
+
+N/A
+
+**Example**
+
+N/A, intermediate image used as a base for DelugeVPN and SABnzbdVPN.
+
+**Notes**
+
+N/A
+
+[Support forum](http://lime-technology.com/forum/index.php?topic=38055.0)
