@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# strip whitespace from start and end of VPN_ENABLED env var
+VPN_ENABLED=$(echo "${VPN_ENABLED}" | sed -e 's/^[ \t]*//')
+
 # if vpn set to "no" then don't run openvpn
 if [[ "${VPN_ENABLED}" == "no" ]]; then
 
@@ -8,12 +11,21 @@ if [[ "${VPN_ENABLED}" == "no" ]]; then
 else
 
 	echo "[info] VPN is enabled, beginning configuration of OpenVPN"
-
+	
 	# create directory
 	mkdir -p /config/openvpn
 	
 	# set rw for all users recursively in /config/openvpn
 	chmod -R a+rw /config/openvpn/*
+	
+	# strip whitespace from start and end of all other env vars
+	VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
+	VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
+	VPN_PASS=$(echo "${VPN_PASS}" | sed -e 's/^[ \t]*//')
+	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
+	VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
+	VPN_PROV=$(echo "${VPN_PROV}" | sed -e 's/^[ \t]*//')
+	LAN_RANGE=$(echo"${LAN_RANGE}" | sed -e 's/^[ \t]*//')
 	
 	# wildcard search for openvpn config files
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print)
