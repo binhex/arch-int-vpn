@@ -171,7 +171,7 @@ else
 
 	# strip whitespace from start and end
 	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
-	LAN_RANGE=$(echo"${LAN_RANGE}" | sed -e 's/^[ \t]*//')
+	LAN_RANGE=$(echo "${LAN_RANGE}" | sed -e 's/^[ \t]*//')
 
 	# start openvpn tunnel
 	source /root/openvpn.sh
