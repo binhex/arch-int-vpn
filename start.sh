@@ -1,7 +1,7 @@
 #!/bin/bash
 # TODO write protocol and port to ovpn file if env defined
 
-# strip whitespace from start and end of VPN_ENABLED env var
+# strip whitespace from start and end of env var
 VPN_ENABLED=$(echo "${VPN_ENABLED}" | sed -e 's/^[ \t]*//')
 
 # if vpn set to "no" then don't run openvpn
@@ -34,8 +34,6 @@ else
 	# if vpn provider is pia and no ovpn then copy
 	if [[ -z "${VPN_CONFIG}" && "${VPN_PROV}" == "pia" ]]; then
 	
-		echo "[info] VPN provider defined as ${VPN_PROV}"
-
 		# copy default certs and ovpn file
 		cp -f /home/nobody/ca.crt /config/openvpn/ca.crt
 		cp -f /home/nobody/crl.pem /config/openvpn/crl.pem
@@ -47,13 +45,17 @@ else
 		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 	fi
 
+	echo "[info] VPN config file (ovpn extension) is located at ${VPN_CONFIG}"
+	
 	# convert CRLF (windows) to LF (unix) for ovpn
 	tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
 
 	# if vpn remote, port and protocol defined via env vars then use, else use from ovpn
 	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" && ! -z "${VPN_PROTOCOL}" ]]; then
 	
-		# strip whitespace from start and end
+		echo "[info] Env vars defined via docker -e flags for remote host, port and protocol, writing values to ovpn file..."
+		
+		# strip whitespace from start and end of env vars
 		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
 		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
 		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
@@ -66,16 +68,18 @@ else
 		
 	else
 	
+		echo "[info] Env vars not defined for remote host, port and protocol, will parse existing entries from ovpn file..."
+		
 		# find remote host from ovpn file
 		VPN_REMOTE=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\s]+')
 		
-		# strip whitespace from start and end
+		# strip whitespace from start and end of env vars
 		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
 		
 		# find remote port from ovpn file
 		VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 '(?<=\s)[\d]{2,5}(?=[\s])|[\d]{2,5}$')
 		
-		# strip whitespace from start and end of all other env vars
+		# strip whitespace from start and end of env vars
 		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
 		
 		# find remote port from ovpn file
@@ -85,10 +89,22 @@ else
 			VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=proto\s).*$' | grep -P -o -m 1 'udp|tcp')
 		fi
 		
-		# strip whitespace from start and end
+		# strip whitespace from start and end of env vars
 		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
 	fi
 	
+	if [[ "${DEBUG}" == "true" ]]; then
+	
+		# if debug env var set then display contents of ovpn file (useful to show auth used)
+		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..."
+		cat "${VPN_CONFIG}"
+		
+		# if debug env var set then display env vars set (useful to show env var flags passed)
+		echo "[debug] Environment variables defined as follows..."
+		printenv
+
+	fi
+
 	if [[ ! -z "${VPN_REMOTE}" ]]; then
 		echo "[info] VPN provider remote gateway defined as ${VPN_REMOTE}"
 	else
@@ -169,7 +185,7 @@ else
 	cat /etc/resolv.conf
 	echo "--------------------"
 
-	# strip whitespace from start and end
+	# strip whitespace from start and end of env vars (optional)
 	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
 	LAN_RANGE=$(echo "${LAN_RANGE}" | sed -e 's/^[ \t]*//')
 

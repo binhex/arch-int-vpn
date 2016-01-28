@@ -27,4 +27,4 @@ N/A, intermediate image used as a base for DelugeVPN and SABnzbdVPN.
 
 N/A
 
-[Support forum](http://lime-technology.com/forum/index.php?topic=38055.0)
+[Support forum](http://lime-technology.com/forum/index.php?topic=45811.0)
