@@ -1,5 +1,4 @@
 #!/bin/bash
-# TODO write protocol and port to ovpn file if env defined
 
 # strip whitespace from start and end of env var
 VPN_ENABLED=$(echo "${VPN_ENABLED}" | sed -e 's/^[ \t]*//')
