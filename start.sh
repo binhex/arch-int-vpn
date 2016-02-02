@@ -133,18 +133,32 @@ else
 
 		# write vpn username to file
 		if [[ -z "${VPN_USER}" ]]; then
+
 			echo "[crit] VPN username not specified, please specify using env variable VPN_USER" && exit 1
+
 		else
+
+			# escape characters for username
+			printf -v VPN_USER "%q\n" "${VPN_USER}"
+			
+			# remove whitespace from start and end
 			VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
 			echo "${VPN_USER}" > /config/openvpn/credentials.conf
 		fi
-		
+
 		echo "[info] VPN provider username defined as ${VPN_USER}"
 		
 		# write vpn password to file
 		if [[ -z "${VPN_PASS}" ]]; then
+		
 			echo "[crit] VPN password not specified, please specify using env variable VPN_PASS" && exit 1
+
 		else
+
+			# escape characters for password
+			printf -v VPN_PASS "%q\n" "${VPN_PASS}"
+
+			# remove whitespace from start and end
 			VPN_PASS=$(echo "${VPN_PASS}" | sed -e 's/^[ \t]*//')
 			echo "${VPN_PASS}" >> /config/openvpn/credentials.conf
 		fi
@@ -173,6 +187,12 @@ else
 
 	# get ip for local gateway (eth0)
 	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
+	echo "[info] Default route for container is ${DEFAULT_GATEWAY}"
+
+	# strip whitespace from start and end of env vars (optional)
+	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
+	LAN_RANGE=$(echo "${LAN_RANGE}" | sed -e 's/^[ \t]*//')
+	LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's/^[ \t]*//')
 
 	# setup ip tables and routing for application
 	source /root/iptable.sh
@@ -184,10 +204,6 @@ else
 	echo "[info] nameservers"
 	cat /etc/resolv.conf
 	echo "--------------------"
-
-	# strip whitespace from start and end of env vars (optional)
-	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
-	LAN_RANGE=$(echo "${LAN_RANGE}" | sed -e 's/^[ \t]*//')
 
 	# start openvpn tunnel
 	source /root/openvpn.sh
