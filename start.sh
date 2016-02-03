@@ -190,7 +190,6 @@ else
 
 	# strip whitespace from start and end of env vars (optional)
 	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
-	LAN_RANGE=$(echo "${LAN_RANGE}" | sed -e 's/^[ \t]*//')
 	LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's/^[ \t]*//')
 
 	# setup ip tables and routing for application
