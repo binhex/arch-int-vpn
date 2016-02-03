@@ -136,9 +136,6 @@ else
 			echo "[crit] VPN username not specified, please specify using env variable VPN_USER" && exit 1
 
 		else
-
-			# escape characters for username
-			printf -v VPN_USER "%q\n" "${VPN_USER}"
 			
 			# remove whitespace from start and end
 			VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
@@ -153,9 +150,6 @@ else
 			echo "[crit] VPN password not specified, please specify using env variable VPN_PASS" && exit 1
 
 		else
-
-			# escape characters for password
-			printf -v VPN_PASS "%q\n" "${VPN_PASS}"
 
 			# remove whitespace from start and end
 			VPN_PASS=$(echo "${VPN_PASS}" | sed -e 's/^[ \t]*//')
