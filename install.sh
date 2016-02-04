@@ -4,7 +4,7 @@
 set -e
 
 # define pacman packages
-pacman_packages="net-tools openvpn privoxy"
+pacman_packages="kmod net-tools openvpn privoxy"
 
 # install pre-reqs
 pacman -Syu --ignore filesystem --noconfirm
