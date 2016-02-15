@@ -11,7 +11,7 @@ ADD apps/root/*.sh /root/
 ADD apps/nobody/*.sh /home/nobody/
 
 # add bash scripts to install app, and setup iptables, routing etc
-ADD *.sh /root/
+ADD setup/*.sh /root/
 
 # add pia certificates and sample openvpn.ovpn file
 ADD config/pia/* /home/nobody/
