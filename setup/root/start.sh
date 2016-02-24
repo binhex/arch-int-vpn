@@ -12,12 +12,9 @@ else
 
 	echo "[info] VPN is enabled, beginning configuration of VPN"
 	
-	# create directory
+	# create directory as user root
 	mkdir -p /config/openvpn
-	
-	# set rw for all users recursively in /config/openvpn
-	chmod -R a+rw /config/openvpn/*
-	
+
 	# wildcard search for openvpn config files
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print)
 
@@ -170,10 +167,6 @@ else
 		sed -i '/persist-tun/d' "${VPN_CONFIG}"
 	fi
 
-	# set permissions to user nobody
-	chown -R nobody:users /config/openvpn
-	chmod -R 775 /config/openvpn
-
 	# create the tunnel device
 	[ -d /dev/net ] || mkdir -p /dev/net
 	[ -c /dev/net/tun ] || mknod /dev/net/tun c 10 200
@@ -185,6 +178,11 @@ else
 	# strip whitespace from start and end of env vars (optional)
 	ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
 	LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's/^[ \t]*//')
+
+	# set permissions for /config/openvpn folder
+	echo "[info] Setting permissions recursively on /config/openvpn..."
+	chown -R "${PUID}":"${PGID}" /config/openvpn
+	chmod -R 777 /config/openvpn
 
 	# setup ip tables and routing for application
 	source /root/iptable.sh
