@@ -137,7 +137,9 @@ else
 
 		echo "[info] VPN provider username defined as ${VPN_USER}"
 		
+		username_char_check=$(echo "${VPN_USER}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
 
+		if [[ ! -z "${username_char_check}" ]]; then
 			echo "[warn] Username contains characters which could cause authentication issues, please consider changing this if possible"
 		fi
 
@@ -155,7 +157,9 @@ else
 
 		echo "[info] VPN provider password defined as ${VPN_PASS}"
 		
+		password_char_check=$(echo "${VPN_PASS}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
 		
+		if [[ ! -z "${password_char_check}" ]]; then
 			echo "[warn] Password contains characters which could cause authentication issues, please consider changing this if possible"
 		fi
 
