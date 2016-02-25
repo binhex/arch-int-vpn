@@ -41,6 +41,10 @@ else
 		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
 	fi
 
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Environment variables defined as follows" ; set
+	fi
+	
 	echo "[info] VPN config file (ovpn extension) is located at ${VPN_CONFIG}"
 	
 	# convert CRLF (windows) to LF (unix) for ovpn
@@ -90,15 +94,7 @@ else
 	fi
 	
 	if [[ "${DEBUG}" == "true" ]]; then
-	
-		# if debug env var set then display contents of ovpn file (useful to show auth used)
-		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..."
-		cat "${VPN_CONFIG}"
-		
-		# if debug env var set then display env vars set (useful to show env var flags passed)
-		echo "[debug] Environment variables defined as follows..."
-		printenv
-
+		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
 
 	if [[ ! -z "${VPN_REMOTE}" ]]; then
@@ -141,6 +137,10 @@ else
 
 		echo "[info] VPN provider username defined as ${VPN_USER}"
 		
+
+			echo "[warn] Username contains characters which could cause authentication issues, please consider changing this if possible"
+		fi
+
 		# write vpn password to file
 		if [[ -z "${VPN_PASS}" ]]; then
 		
@@ -154,6 +154,10 @@ else
 		fi
 
 		echo "[info] VPN provider password defined as ${VPN_PASS}"
+		
+		
+			echo "[warn] Password contains characters which could cause authentication issues, please consider changing this if possible"
+		fi
 
 	fi
 
