@@ -15,8 +15,8 @@ else
 	# create directory as user root
 	mkdir -p /config/openvpn
 
-	# wildcard search for openvpn config files
-	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print)
+	# wildcard search for openvpn config files (match on first result)
+	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print -quit)
 
 	# if vpn provider not set then exit
 	if [[ -z "${VPN_PROV}" ]]; then
@@ -35,7 +35,7 @@ else
 		cp -f /home/nobody/crl.pem /config/openvpn/crl.pem
 		cp -f "/home/nobody/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
 		VPN_CONFIG="/config/openvpn/openvpn.ovpn"
-		
+
 	# else if not pia and no ovpn then exit
 	elif [[ -z "${VPN_CONFIG}" ]]; then
 		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
