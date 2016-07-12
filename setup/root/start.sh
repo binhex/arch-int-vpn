@@ -59,32 +59,6 @@ else
 		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
 		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
 		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
-
-	else
-
-		echo "[info] Env vars not defined for remote host, port and protocol, will parse existing entries from ovpn file..."
-
-		# find remote host from ovpn file
-		VPN_REMOTE=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\s]+')
-
-		# strip whitespace from start and end of env vars
-		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
-
-		# find remote port from ovpn file
-		VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 '(?<=\s)[\d]{2,5}(?=[\s])|[\d]{2,5}$')
-
-		# strip whitespace from start and end of env vars
-		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
-
-		# find remote port from ovpn file
-		VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 'udp|tcp')
-
-		if [[ -z "${VPN_PROTOCOL}" ]]; then
-			VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=proto\s).*$' | grep -P -o -m 1 'udp|tcp')
-		fi
-
-		# strip whitespace from start and end of env vars
-		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
@@ -94,19 +68,19 @@ else
 	if [[ ! -z "${VPN_REMOTE}" ]]; then
 		echo "[info] VPN provider remote gateway defined as ${VPN_REMOTE}"
 	else
-		echo "[crit] VPN provider remote gateway not defined, exiting..." && exit 1
+		echo "[crit] VPN provider remote gateway not defined (via -e VPN_REMOTE), exiting..." && exit 1
 	fi
 
 	if [[ ! -z "${VPN_PORT}" ]]; then
 		echo "[info] VPN provider remote port defined as ${VPN_PORT}"
 	else
-		echo "[crit] VPN provider remote port not defined, exiting..." && exit 1
+		echo "[crit] VPN provider remote port not defined (via -e VPN_PORT), exiting..." && exit 1
 	fi
 
 	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
 		echo "[info] VPN provider remote protocol defined as ${VPN_PROTOCOL}"
 	else
-		echo "[crit] VPN provider remote protocol not defined, exiting..." && exit 1
+		echo "[crit] VPN provider remote protocol not defined (via -e VPN_PROTOCOL), exiting..." && exit 1
 	fi
 
 	# if vpn provider not airvpn then write credentials to file
@@ -167,6 +141,16 @@ else
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
 	if $(grep -Fq "persist-tun" "${VPN_CONFIG}"); then
 		sed -i '/persist-tun/d' "${VPN_CONFIG}"
+	fi
+
+	# remove proto from ovpn file if present, defined via env variable and passed to openvpn via command line argument
+	if $(grep -Fq "proto" "${VPN_CONFIG}"); then
+		sed -i '/proto\s.*/d' "${VPN_CONFIG}"
+	fi
+
+	# remove remote from ovpn file if present, defined via env variable and passed to openvpn via command line argument
+	if $(grep -Fq "remote" "${VPN_CONFIG}"); then
+		sed -i '/remote\s.*/d' "${VPN_CONFIG}"
 	fi
 
 	# create the tunnel device
