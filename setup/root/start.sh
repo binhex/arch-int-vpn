@@ -26,13 +26,13 @@ else
 	fi
 
 	echo "[info] VPN provider defined as ${VPN_PROV}"
-	
+
 	# if vpn provider is pia and no ovpn then copy
 	if [[ -z "${VPN_CONFIG}" && "${VPN_PROV}" == "pia" ]]; then
-	
+
 		# copy default certs and ovpn file
-		cp -f /home/nobody/ca.crt /config/openvpn/ca.crt
-		cp -f /home/nobody/crl.pem /config/openvpn/crl.pem
+		cp -f /home/nobody/*.crt /config/openvpn/
+		cp -f /home/nobody/*.pem /config/openvpn/
 		cp -f "/home/nobody/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
 		VPN_CONFIG="/config/openvpn/openvpn.ovpn"
 
@@ -44,55 +44,49 @@ else
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Environment variables defined as follows" ; set
 	fi
-	
+
 	echo "[info] VPN config file (ovpn extension) is located at ${VPN_CONFIG}"
-	
+
 	# convert CRLF (windows) to LF (unix) for ovpn
 	tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
 
 	# if vpn remote, port and protocol defined via env vars then use, else use from ovpn
 	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" && ! -z "${VPN_PROTOCOL}" ]]; then
-	
+
 		echo "[info] Env vars defined via docker -e flags for remote host, port and protocol, writing values to ovpn file..."
-		
+
 		# strip whitespace from start and end of env vars
 		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
 		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
 		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
-		
-		# remove proto line from ovpn if present
-		sed -i '/proto.*/d' "${VPN_CONFIG}"
-		
-		# write to ovpn file
-		sed -i -e "s/remote\s.*/remote ${VPN_REMOTE} ${VPN_PORT} ${VPN_PROTOCOL}/g" "${VPN_CONFIG}"
-		
+
 	else
-	
+
 		echo "[info] Env vars not defined for remote host, port and protocol, will parse existing entries from ovpn file..."
-		
+
 		# find remote host from ovpn file
 		VPN_REMOTE=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s)[^\s]+')
-		
+
 		# strip whitespace from start and end of env vars
 		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
-		
+
 		# find remote port from ovpn file
 		VPN_PORT=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 '(?<=\s)[\d]{2,5}(?=[\s])|[\d]{2,5}$')
-		
+
 		# strip whitespace from start and end of env vars
 		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
-		
+
 		# find remote port from ovpn file
 		VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=remote\s).*$' | grep -P -o -m 1 'udp|tcp')
-		
+
 		if [[ -z "${VPN_PROTOCOL}" ]]; then
 			VPN_PROTOCOL=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '(?<=proto\s).*$' | grep -P -o -m 1 'udp|tcp')
 		fi
-		
+
 		# strip whitespace from start and end of env vars
 		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
 	fi
-	
+
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
@@ -102,19 +96,19 @@ else
 	else
 		echo "[crit] VPN provider remote gateway not defined, exiting..." && exit 1
 	fi
-	
+
 	if [[ ! -z "${VPN_PORT}" ]]; then
 		echo "[info] VPN provider remote port defined as ${VPN_PORT}"
 	else
 		echo "[crit] VPN provider remote port not defined, exiting..." && exit 1
 	fi
-	
+
 	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
 		echo "[info] VPN provider remote protocol defined as ${VPN_PROTOCOL}"
 	else
 		echo "[crit] VPN provider remote protocol not defined, exiting..." && exit 1
 	fi
-	
+
 	# if vpn provider not airvpn then write credentials to file
 	if [[ "${VPN_PROV}" != "airvpn" ]]; then
 
@@ -129,14 +123,14 @@ else
 			echo "[crit] VPN username not specified, please specify using env variable VPN_USER" && exit 1
 
 		else
-			
+
 			# remove whitespace from start and end
 			VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
 			echo "${VPN_USER}" > /config/openvpn/credentials.conf
 		fi
 
 		echo "[info] VPN provider username defined as ${VPN_USER}"
-		
+
 		username_char_check=$(echo "${VPN_USER}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
 
 		if [[ ! -z "${username_char_check}" ]]; then
@@ -145,7 +139,7 @@ else
 
 		# write vpn password to file
 		if [[ -z "${VPN_PASS}" ]]; then
-		
+
 			echo "[crit] VPN password not specified, please specify using env variable VPN_PASS" && exit 1
 
 		else
@@ -156,9 +150,9 @@ else
 		fi
 
 		echo "[info] VPN provider password defined as ${VPN_PASS}"
-		
+
 		password_char_check=$(echo "${VPN_PASS}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
-		
+
 		if [[ ! -z "${password_char_check}" ]]; then
 			echo "[warn] Password contains characters which could cause authentication issues, please consider changing this if possible"
 		fi

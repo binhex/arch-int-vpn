@@ -9,7 +9,7 @@ sleep_period="10"
 while true; do
 
 	# run openvpn to create tunnel
-	/usr/bin/openvpn --cd /config/openvpn --config "$VPN_CONFIG" --mute-replay-warnings --keepalive 10 60
+	/usr/bin/openvpn --cd /config/openvpn --config "$VPN_CONFIG" --remote "${VPN_REMOTE}" "${VPN_PORT}" --proto "${VPN_PROTOCOL}" --auth-user-pass credentials.conf --mute-replay-warnings --keepalive 10 60
 
 	echo "[warn] VPN connection terminated"
 
