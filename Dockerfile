@@ -14,8 +14,8 @@ ADD apps/root/*.sh /root/
 ADD apps/nobody/*.sh /home/nobody/
 
 # add pia certificates and sample openvpn.ovpn file
-ADD config/pia/default/* /home/nobody/default/
-ADD config/pia/strong/* /home/nobody/strong/
+ADD config/pia/default/* /home/nobody/certs/default/
+ADD config/pia/strong/* /home/nobody/certs/strong/
 
 # install app
 #############
