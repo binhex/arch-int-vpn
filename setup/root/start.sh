@@ -42,7 +42,7 @@ else
 			# copy strong encrption ovpn and certs
 			cp -f /home/nobody/strong/*.crt /config/openvpn/
 			cp -f /home/nobody/strong/*.pem /config/openvpn/
-			cp -f "/home/nobody/strong/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
+			cp -f "/home/nobody/strong/strong.ovpn" "/config/openvpn/openvpn.ovpn"
 
 		else
 
@@ -51,7 +51,7 @@ else
 			# copy default encrption ovpn and certs
 			cp -f /home/nobody/default/*.crt /config/openvpn/
 			cp -f /home/nobody/default/*.pem /config/openvpn/
-			cp -f "/home/nobody/default/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
+			cp -f "/home/nobody/default/default.ovpn" "/config/openvpn/openvpn.ovpn"
 
 		fi
 
