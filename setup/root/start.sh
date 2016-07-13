@@ -17,28 +17,51 @@ else
 
 	# wildcard search for openvpn config files (match on first result)
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print -quit)
+	
+	# strip whitespace from start and end of env var
+	VPN_PROV=$(echo "${VPN_PROV}" | sed -e 's/^[ \t]*//')
+	STRONG_CERTS=$(echo "${STRONG_CERTS}" | sed -e 's/^[ \t]*//')
 
 	# if vpn provider not set then exit
 	if [[ -z "${VPN_PROV}" ]]; then
 		echo "[crit] VPN provider not defined, please specify via env variable VPN_PROV" && exit 1
-	else
-		VPN_PROV=$(echo "${VPN_PROV}" | sed -e 's/^[ \t]*//')
 	fi
 
 	echo "[info] VPN provider defined as ${VPN_PROV}"
 
-	# if vpn provider is pia and no ovpn then copy
-	if [[ -z "${VPN_CONFIG}" && "${VPN_PROV}" == "pia" ]]; then
+	# if ovpn filename is not custom.ovpn and the provider is pia then copy included ovpn and certs
+	if [[ "${VPN_CONFIG}" != "custom.ovpn" && "${VPN_PROV}" == "pia" ]]; then
 
-		# copy default certs and ovpn file
-		cp -f /home/nobody/*.crt /config/openvpn/
-		cp -f /home/nobody/*.pem /config/openvpn/
-		cp -f "/home/nobody/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
+		# remove previous certs and ovpn files, user may of switched to strong
+		rm -f /config/openvpn/*
+
+		if [[ "${STRONG_CERTS}" == "yes" ]]; then
+
+			echo "[info] VPN strong certs defined, copying to /config/openvpn/..."
+
+			# copy strong encrption ovpn and certs
+			cp -f /home/nobody/strong/*.crt /config/openvpn/
+			cp -f /home/nobody/strong/*.pem /config/openvpn/
+			cp -f "/home/nobody/strong/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
+
+		else
+
+			echo "[info] VPN default certs defined, copying to /config/openvpn/..."
+
+			# copy default encrption ovpn and certs
+			cp -f /home/nobody/default/*.crt /config/openvpn/
+			cp -f /home/nobody/default/*.pem /config/openvpn/
+			cp -f "/home/nobody/default/openvpn.ovpn" "/config/openvpn/openvpn.ovpn"
+
+		fi
+
 		VPN_CONFIG="/config/openvpn/openvpn.ovpn"
 
-	# else if not pia and no ovpn then exit
-	elif [[ -z "${VPN_CONFIG}" ]]; then
+	# if ovpn file not found in /config/openvpn and the provider is not pia then exit
+	elif [[ -z "${VPN_CONFIG}" && "${VPN_PROV}" != "pia" ]]; then
+
 		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
+
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
@@ -50,7 +73,7 @@ else
 	# convert CRLF (windows) to LF (unix) for ovpn
 	tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
 
-	# if vpn remote, port and protocol defined via env vars then use, else use from ovpn
+	# use vpn remote, port and protocol defined via env vars
 	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" && ! -z "${VPN_PROTOCOL}" ]]; then
 
 		echo "[info] Env vars defined via docker -e flags for remote host, port and protocol, writing values to ovpn file..."
@@ -83,7 +106,7 @@ else
 		echo "[crit] VPN provider remote protocol not defined (via -e VPN_PROTOCOL), exiting..." && exit 1
 	fi
 
-	# if vpn provider not airvpn then write credentials to file
+	# if vpn provider not airvpn then write credentials to file (airvpn uses certs for authentication)
 	if [[ "${VPN_PROV}" != "airvpn" ]]; then
 
 		# store credentials in separate file for authentication
