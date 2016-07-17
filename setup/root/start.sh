@@ -30,7 +30,7 @@ else
 	echo "[info] VPN provider defined as ${VPN_PROV}"
 
 	# if ovpn filename is not custom.ovpn and the provider is pia then copy included ovpn and certs
-	if [[ "${VPN_CONFIG}" != "custom.ovpn" && "${VPN_PROV}" == "pia" ]]; then
+	if [[ "${VPN_CONFIG}" != "/config/openvpn/custom.ovpn" && "${VPN_PROV}" == "pia" ]]; then
 
 		# remove previous certs and ovpn files, user may of switched to strong
 		rm -f /config/openvpn/*
