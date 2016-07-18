@@ -12,22 +12,19 @@ while true; do
 
 	if [[ "${VPN_PROV}" == "pia" ]]; then
 
-		# run openvpn to create tunnel (with additional flags to pass credentials and ignore local-remote warnings
+		# add additional flags to pass credentials and ignore local-remote warnings
 		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ"
-		eval "${openvpn_cli}"
 
-	elif [[ "${VPN_PROV}" == "airvpn" ]]; then
 
-		# run openvpn to create tunnel
-		eval "${openvpn_cli}"
+	elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
-	else
-
-		# run openvpn to create tunnel (with additional flags to pass credentials)
+		# add additional flags to pass credentials
 		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
-		eval "${openvpn_cli}"
 
 	fi
+
+	# run openvpn to create tunnel
+	eval "${openvpn_cli}"
 
 	echo "[warn] VPN connection terminated"
 
