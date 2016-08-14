@@ -21,8 +21,14 @@ else
 
 		sed -i -e "s/confdir \/etc\/privoxy/confdir \/config\/privoxy/g" /config/privoxy/config
 		sed -i -e "s/logdir \/var\/log\/privoxy/logdir \/config\/privoxy/g" /config/privoxy/config
-		sed -i -e "s/listen-address.*/listen-address  $LAN_IP:8118/g" /config/privoxy/config
 
+		sed -i -e "/listen-address/d" /config/privoxy/config
+		# capture system interfaces, could be connected to multiple docker networks
+		INTERFACES=$(for i in /sys/class/net/*; do if [ "`cat $i/type`" == "1" ]; then basename $i; fi; done)
+		for int in $INTERFACES; do
+			LAN_IP=$(ip addr show $int | grep inet[^6] | awk '{ print gensub(/\/[0-9]+/, "", 1, $2) }')
+			echo "listen-address $LAN_IP:8118" >> /config/privoxy/config
+		done
 		echo "[info] All checks complete, starting Privoxy..."
 
 		/usr/bin/privoxy --no-daemon /config/privoxy/config
