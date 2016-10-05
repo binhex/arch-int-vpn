@@ -94,16 +94,39 @@ else
 		echo "[crit] VPN provider remote gateway not defined (via -e VPN_REMOTE), exiting..." && exit 1
 	fi
 
-	if [[ ! -z "${VPN_PORT}" ]]; then
-		echo "[info] VPN provider remote port defined as ${VPN_PORT}"
-	else
-		echo "[crit] VPN provider remote port not defined (via -e VPN_PORT), exiting..." && exit 1
-	fi
-
 	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
 		echo "[info] VPN provider remote protocol defined as ${VPN_PROTOCOL}"
 	else
 		echo "[crit] VPN provider remote protocol not defined (via -e VPN_PROTOCOL), exiting..." && exit 1
+	fi
+
+	if [[ ! -z "${VPN_PORT}" ]]; then
+		echo "[info] VPN provider remote port defined as ${VPN_PORT}"
+		
+		if [[ "${VPN_PROV}" == "pia" ]]; then
+		
+			if [[ "${VPN_PROTOCOL}" == "udp" && "${VPN_PORT}" != "1198" && "${STRONG_CERTS}" != "yes" ]]; then
+				echo "[warn] VPN provider remote port incorrect, overriding to 1198"
+				VPN_PORT="1198"
+
+			elif [[ "${VPN_PROTOCOL}" == "udp" && "${VPN_PORT}" != "1197" && "${STRONG_CERTS}" == "yes" ]]; then
+				echo "[warn] VPN provider remote port incorrect, overriding to 1197"
+				VPN_PORT="1197"
+
+			
+			elif [[ "${VPN_PROTOCOL}" == "tcp" && "${VPN_PORT}" != "502" && "${STRONG_CERTS}" != "yes" ]]; then
+				echo "[warn] VPN provider remote port incorrect, overriding to 502"
+				VPN_PORT="502"
+
+			
+			elif [[ "${VPN_PROTOCOL}" == "tcp" && "${VPN_PORT}" != "501" && "${STRONG_CERTS}" == "yes" ]]; then
+				echo "[warn] VPN provider remote port incorrect, overriding to 501"
+				VPN_PORT="501"
+			fi
+		fi
+
+	else
+		echo "[crit] VPN provider remote port not defined (via -e VPN_PORT), exiting..." && exit 1
 	fi
 
 	# if vpn provider not airvpn then write credentials to file (airvpn uses certs for authentication)
