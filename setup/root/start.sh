@@ -192,7 +192,7 @@ else
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; dig "${VPN_REMOTE}"
+		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
 	fi
 
 	# remove ping and ping-restart from ovpn file if present, now using flag --keepalive
