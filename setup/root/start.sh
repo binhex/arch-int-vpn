@@ -73,6 +73,10 @@ else
 	# convert CRLF (windows) to LF (unix) for ovpn
 	tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
 
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Directory listing of files in /config/openvpn as follows" ; ls -al /config/openvpn
+	fi
+
 	# use vpn remote, port and protocol defined via env vars
 	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" && ! -z "${VPN_PROTOCOL}" ]]; then
 
@@ -82,6 +86,7 @@ else
 		VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
 		VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
 		VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
+		VPN_DEVICE_TYPE=$(echo "${VPN_DEVICE_TYPE}" | sed -e 's/^[ \t]*//')
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
@@ -98,6 +103,13 @@ else
 		echo "[info] VPN provider remote protocol defined as ${VPN_PROTOCOL}"
 	else
 		echo "[crit] VPN provider remote protocol not defined (via -e VPN_PROTOCOL), exiting..." && exit 1
+	fi
+	
+	if [[ ! -z "${VPN_DEVICE_TYPE}" ]]; then
+		echo "[info] VPN tunnel device type defined as ${VPN_DEVICE_TYPE}"
+	else
+		echo "[warn] VPN tunnel device not defined (via -e VPN_DEVICE_TYPE), defaulting to 'tun'"
+		VPN_DEVICE_TYPE="tun"
 	fi
 
 	if [[ ! -z "${VPN_PORT}" ]]; then
@@ -179,6 +191,10 @@ else
 
 	fi
 
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; dig "${VPN_REMOTE}"
+	fi
+
 	# remove ping and ping-restart from ovpn file if present, now using flag --keepalive
 	if $(grep -Fq "ping" "${VPN_CONFIG}"); then
 		sed -i '/ping.*/d' "${VPN_CONFIG}"
@@ -201,7 +217,7 @@ else
 
 	# create the tunnel device
 	[ -d /dev/net ] || mkdir -p /dev/net
-	[ -c /dev/net/tun ] || mknod /dev/net/tun c 10 200
+	[ -c /dev/net/"${VPN_DEVICE_TYPE}" ] || mknod /dev/net/"${VPN_DEVICE_TYPE}" c 10 200
 
 	# get ip for local gateway (eth0)
 	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
