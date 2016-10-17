@@ -109,7 +109,7 @@ else
 		echo "[info] VPN tunnel device type defined as ${VPN_DEVICE_TYPE}"
 	else
 		echo "[warn] VPN tunnel device not defined (via -e VPN_DEVICE_TYPE), defaulting to 'tun'"
-		VPN_DEVICE_TYPE="tun"
+		export VPN_DEVICE_TYPE="tun"
 	fi
 
 	if [[ ! -z "${VPN_PORT}" ]]; then
