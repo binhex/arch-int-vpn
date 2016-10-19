@@ -43,55 +43,6 @@ else
 
 fi
 
-export VPN_PROV=$(echo "${VPN_PROV}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_PROV}" ]]; then
-	echo "[info] VPN_PROV defined as ${VPN_PROV}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] VPN_PROV not defined,(via -e VPN_PROV), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
-export VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_REMOTE}" ]]; then
-	echo "[info] VPN_REMOTE defined as ${VPN_REMOTE}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] VPN_REMOTE not defined (via -e VPN_REMOTE), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
-export VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_PORT}" ]]; then
-	echo "[info] VPN_PORT defined as ${VPN_PORT}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] VPN_PORT not defined (via -e VPN_PORT), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
-export VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_PROTOCOL}" ]]; then
-	echo "[info] VPN_PROTOCOL defined as ${VPN_PROTOCOL}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] VPN_PROTOCOL not defined (via -e VPN_PROTOCOL), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
-export VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_USER}" ]]; then
-	echo "[info] VPN_USER defined as ${VPN_USER}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] VPN_USER not specified, please specify using env variable VPN_USER" | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
-export VPN_PASS=$(echo "${VPN_PASS}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_PASS}" ]]; then
-	echo "[info] VPN_PASS defined as ${VPN_PASS}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] VPN_PASS not specified, please specify using env variable VPN_PASS" | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
-export LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${LAN_NETWORK}" ]]; then
-	echo "[info] LAN_NETWORK defined as ${LAN_NETWORK}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[crit] LAN_NETWORK not specified, please specify using env variable LAN_NETWORK" | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-fi
-
 export VPN_ENABLED=$(echo "${VPN_ENABLED}" | sed -e 's/^[ \t]*//')
 if [[ ! -z "${VPN_ENABLED}" ]]; then
 	echo "[info] VPN_ENABLED defined as ${VPN_ENABLED}" | ts '%Y-%m-%d %H:%M:%.S'
@@ -100,20 +51,74 @@ else
 	export VPN_ENABLED="yes"
 fi
 
-export VPN_DEVICE_TYPE=$(echo "${VPN_DEVICE_TYPE}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${VPN_DEVICE_TYPE}" ]]; then
-	echo "[info] VPN_DEVICE_TYPE defined as ${VPN_DEVICE_TYPE}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[warn] VPN_DEVICE_TYPE not defined (via -e VPN_DEVICE_TYPE), defaulting to 'tun'" | ts '%Y-%m-%d %H:%M:%.S'
-	export VPN_DEVICE_TYPE="tun"
-fi
+if [[ $VPN_ENABLED == "yes" ]]; then
+	export VPN_PROV=$(echo "${VPN_PROV}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${VPN_PROV}" ]]; then
+		echo "[info] VPN_PROV defined as ${VPN_PROV}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[crit] VPN_PROV not defined,(via -e VPN_PROV), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
+	fi
 
-export STRONG_CERTS=$(echo "${STRONG_CERTS}" | sed -e 's/^[ \t]*//')
-if [[ ! -z "${STRONG_CERTS}" ]]; then
-	echo "[info] STRONG_CERTS defined as ${STRONG_CERTS}" | ts '%Y-%m-%d %H:%M:%.S'
-else
-	echo "[warn] STRONG_CERTS not defined (via -e STRONG_CERTS), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
-	export STRONG_CERTS="no"
+	export VPN_REMOTE=$(echo "${VPN_REMOTE}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${VPN_REMOTE}" ]]; then
+		echo "[info] VPN_REMOTE defined as ${VPN_REMOTE}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[crit] VPN_REMOTE not defined (via -e VPN_REMOTE), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
+	fi
+
+	export VPN_PORT=$(echo "${VPN_PORT}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${VPN_PORT}" ]]; then
+		echo "[info] VPN_PORT defined as ${VPN_PORT}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[crit] VPN_PORT not defined (via -e VPN_PORT), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
+	fi
+
+	export VPN_PROTOCOL=$(echo "${VPN_PROTOCOL}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
+		echo "[info] VPN_PROTOCOL defined as ${VPN_PROTOCOL}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[crit] VPN_PROTOCOL not defined (via -e VPN_PROTOCOL), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
+	fi
+
+	export LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${LAN_NETWORK}" ]]; then
+		echo "[info] LAN_NETWORK defined as ${LAN_NETWORK}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[crit] LAN_NETWORK not specified, please specify using env variable LAN_NETWORK" | ts '%Y-%m-%d %H:%M:%.S' && exit 1
+	fi
+
+	if [[ $VPN_PROV != "airvpn" ]]; then
+		export VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
+		if [[ ! -z "${VPN_USER}" ]]; then
+			echo "[info] VPN_USER defined as ${VPN_USER}" | ts '%Y-%m-%d %H:%M:%.S'
+		else
+			echo "[warn] VPN_USER not specified, please specify using env variable VPN_USER" | ts '%Y-%m-%d %H:%M:%.S'
+		fi
+
+		export VPN_PASS=$(echo "${VPN_PASS}" | sed -e 's/^[ \t]*//')
+		if [[ ! -z "${VPN_PASS}" ]]; then
+			echo "[info] VPN_PASS defined as ${VPN_PASS}" | ts '%Y-%m-%d %H:%M:%.S'
+		else
+			echo "[warn] VPN_PASS not specified, please specify using env variable VPN_PASS" | ts '%Y-%m-%d %H:%M:%.S'
+		fi
+	fi
+
+	export VPN_DEVICE_TYPE=$(echo "${VPN_DEVICE_TYPE}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${VPN_DEVICE_TYPE}" ]]; then
+		echo "[info] VPN_DEVICE_TYPE defined as ${VPN_DEVICE_TYPE}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[warn] VPN_DEVICE_TYPE not defined (via -e VPN_DEVICE_TYPE), defaulting to 'tun'" | ts '%Y-%m-%d %H:%M:%.S'
+		export VPN_DEVICE_TYPE="tun"
+	fi
+
+	export STRONG_CERTS=$(echo "${STRONG_CERTS}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${STRONG_CERTS}" ]]; then
+		echo "[info] STRONG_CERTS defined as ${STRONG_CERTS}" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[warn] STRONG_CERTS not defined (via -e STRONG_CERTS), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
+		export STRONG_CERTS="no"
+	fi
+
 fi
 
 export ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
