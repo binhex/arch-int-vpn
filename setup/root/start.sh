@@ -109,10 +109,6 @@ else
 
 	fi
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
-	fi
-
 	# remove ping and ping-restart from ovpn file if present, now using flag --keepalive
 	if $(grep -Fq "ping" "${VPN_CONFIG}"); then
 		sed -i '/ping.*/d' "${VPN_CONFIG}"
@@ -146,16 +142,17 @@ else
 	chown -R "${PUID}":"${PGID}" /config/openvpn
 	chmod -R 777 /config/openvpn
 
-	# setup ip tables and routing for application
-	source /root/iptable.sh
-
 	# add in google public nameservers (isp may block ns lookup when connected to vpn)
 	echo 'nameserver 8.8.8.8' > /etc/resolv.conf
 	echo 'nameserver 8.8.4.4' >> /etc/resolv.conf
 
-	echo "[info] nameservers"
-	cat /etc/resolv.conf
-	echo "--------------------"
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
+		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
+	fi
+
+	# setup ip tables and routing for application
+	source /root/iptable.sh
 
 	# start openvpn tunnel
 	source /root/openvpn.sh
