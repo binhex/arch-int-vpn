@@ -6,6 +6,21 @@ set -e
 # send stdout and stderr to supervisor log file (to capture output from this script)
 exec &>/config/supervisord.log
 
+echo "Docker image created by..."
+cat << "EOF"
+  ___.   .__       .__                   
+  \_ |__ |__| ____ |  |__   ____ ___  ___
+   | __ \|  |/    \|  |  \_/ __ \\  \/  /
+   | \_\ \  |   |  \   Y  \  ___/ >    < 
+   |___  /__|___|  /___|  /\___  >__/\_ \
+       \/        \/     \/     \/      \/
+EOF
+echo "https://hub.docker.com/u/binhex/"
+
+if [[ "${HOST_OS}" == "unRAID" ]]; then
+	echo "[info] Looks like the host is running unRAID"
+fi
+
 export PUID=$(echo "${PUID}" | sed -e 's/^[ \t]*//')
 if [[ ! -z "${PUID}" ]]; then
 	echo "[info] PUID defined as '${PUID}'" | ts '%Y-%m-%d %H:%M:%.S'
