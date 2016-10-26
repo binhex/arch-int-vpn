@@ -4,7 +4,7 @@
 set -e
 
 # send stdout and stderr to supervisor log file (to capture output from this script)
-exec &>>/config/supervisord.log
+exec 3>&1 4>&2 1>/config/supervisord.log 2>&1
 
 cat << "EOF"
 Created by...
@@ -22,8 +22,8 @@ if [[ "${HOST_OS}" == "unRAID" ]]; then
 	echo "[info] Host is running unRAID" | ts '%Y-%m-%d %H:%M:%.S'
 fi
 
-echo "[info] Host release details as follows..." | ts '%Y-%m-%d %H:%M:%.S'
-cat /etc/*release || true
+echo "[info] Show system information" | ts '%Y-%m-%d %H:%M:%.S'
+uname -a || true
 
 export PUID=$(echo "${PUID}" | sed -e 's/^[ \t]*//')
 if [[ ! -z "${PUID}" ]]; then
