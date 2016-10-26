@@ -4,7 +4,7 @@
 set -e
 
 # send stdout and stderr to supervisor log file (to capture output from this script)
-exec &>/config/supervisord.log
+exec &>>/config/supervisord.log
 
 cat << "EOF"
 Created by...
