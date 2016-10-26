@@ -22,7 +22,8 @@ if [[ "${HOST_OS}" == "unRAID" ]]; then
 	echo "[info] Host is running unRAID" | ts '%Y-%m-%d %H:%M:%.S'
 fi
 
-echo "[info] Host kernel info" | ts '%Y-%m-%d %H:%M:%.S' ; uname -a
+echo "[info] Host release details as follows..." | ts '%Y-%m-%d %H:%M:%.S'
+cat /etc/*release || true
 
 export PUID=$(echo "${PUID}" | sed -e 's/^[ \t]*//')
 if [[ ! -z "${PUID}" ]]; then
@@ -59,6 +60,14 @@ else
 
 	echo "[info] Permissions already set for /config and /data" | ts '%Y-%m-%d %H:%M:%.S'
 
+fi
+
+# check for presence of network interface docker0
+check_network=$(ifconfig | grep docker0 || true)
+
+# if network interface docker0 is present then we are running in host mode and thus must exit
+if [[ ! -z "${check_network}" ]]; then
+	echo "[crit] Network type detected as 'Host', this will cause major issues, please stop the container and switch back to 'Bridge' mode" | ts '%Y-%m-%d %H:%M:%.S' && exit 1
 fi
 
 export VPN_ENABLED=$(echo "${VPN_ENABLED}" | sed -e 's/^[ \t]*//')
