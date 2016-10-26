@@ -119,14 +119,19 @@ else
 		sed -i '/persist-tun/d' "${VPN_CONFIG}"
 	fi
 
-	# remove proto from ovpn file if present, defined via env variable and passed to openvpn via command line argument
-	if $(grep -Fq "proto" "${VPN_CONFIG}"); then
-		sed -i '/proto\s.*/d' "${VPN_CONFIG}"
+	# remove reneg-sec from ovpn file if present, this is disabled via command line to prevent re-checks and dropouts
+	if $(grep -Fq "reneg-sec" "${VPN_CONFIG}"); then
+		sed -i '/reneg-sec.*/d' "${VPN_CONFIG}"
 	fi
 
-	# remove remote from ovpn file if present, defined via env variable and passed to openvpn via command line argument
+	# disable proto from ovpn file if present, defined via env variable and passed to openvpn via command line argument
+	if $(grep -Fq "proto" "${VPN_CONFIG}"); then
+		sed -i -e 's~^proto~# Disabled, as we pass this value via env var\n;proto~g' "${VPN_CONFIG}"
+	fi
+
+	# disable remote from ovpn file if present, defined via env variable and passed to openvpn via command line argument
 	if $(grep -Fq "remote" "${VPN_CONFIG}"); then
-		sed -i '/remote\s.*/d' "${VPN_CONFIG}"
+		sed -i -e 's~^remote~# Disabled, as we pass this value via env var\n;remote~g' "${VPN_CONFIG}"
 	fi
 
 	# create the tunnel device
@@ -142,9 +147,19 @@ else
 	chown -R "${PUID}":"${PGID}" /config/openvpn
 	chmod -R 777 /config/openvpn
 
-	# add in google public nameservers (isp may block ns lookup when connected to vpn)
-	echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-	echo 'nameserver 8.8.4.4' >> /etc/resolv.conf
+	# split comma seperated string into list from NAME_SERVERS env variable
+	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
+
+	# proces sname servers in the list
+	for name_server_item in "${name_server_list[@]}"; do
+
+		# strip whitespace from start and end of name_server_item
+		name_server_item=$(echo "${name_server_item}" | sed -e 's/^[ \t]*//')
+
+		echo "[info] Adding ${name_server_item} to /etc/resolv.conf"
+		echo "nameserver ${name_server_item}" >> /etc/resolv.conf
+
+	done
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf

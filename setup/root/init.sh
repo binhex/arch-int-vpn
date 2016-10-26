@@ -19,8 +19,10 @@ ___.   .__       .__
 EOF
 
 if [[ "${HOST_OS}" == "unRAID" ]]; then
-	echo "[info] Looks like the host is running unRAID" | ts '%Y-%m-%d %H:%M:%.S'
+	echo "[info] Host is running unRAID" | ts '%Y-%m-%d %H:%M:%.S'
 fi
+
+echo "[info] Host kernel info" | ts '%Y-%m-%d %H:%M:%.S' ; uname -a
 
 export PUID=$(echo "${PUID}" | sed -e 's/^[ \t]*//')
 if [[ ! -z "${PUID}" ]]; then
@@ -57,6 +59,14 @@ else
 
 	echo "[info] Permissions already set for /config and /data" | ts '%Y-%m-%d %H:%M:%.S'
 
+fi
+
+# check for presence of network interface docker0
+check_network=$(ifconfig | grep docker0)
+
+# if network interface docker0 is present then we are running in host mode and thus must exit
+if [[ ! -z "${check_network}" ]]; then
+	echo "[crit] Network type detected as 'Host', this will cause major issues, please stop the container and switch back to 'Bridge' mode" | ts '%Y-%m-%d %H:%M:%.S' && exit 1
 fi
 
 export VPN_ENABLED=$(echo "${VPN_ENABLED}" | sed -e 's/^[ \t]*//')
@@ -103,6 +113,16 @@ if [[ $VPN_ENABLED == "yes" ]]; then
 		echo "[crit] LAN_NETWORK not defined (via -e LAN_NETWORK), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
 	fi
 
+	export NAME_SERVERS=$(echo "${NAME_SERVERS}" | sed -e 's/^[ \t]*//')
+	if [[ ! -z "${NAME_SERVERS}" ]]; then
+		echo "[info] NAME_SERVERS defined as '${NAME_SERVERS}'" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[warn] NAME_SERVERS not defined (via -e NAME_SERVERS), defaulting to Google and FreeDNS name servers" | ts '%Y-%m-%d %H:%M:%.S'
+		export NAME_SERVERS="8.8.8.8,37.235.1.174,8.8.4.4,37.235.1.177"
+	fi
+
+	# ADDITIONAL_PORTS_PLACEHOLDER
+
 	if [[ $VPN_PROV != "airvpn" ]]; then
 		export VPN_USER=$(echo "${VPN_USER}" | sed -e 's/^[ \t]*//')
 		if [[ ! -z "${VPN_USER}" ]]; then
@@ -135,6 +155,8 @@ if [[ $VPN_ENABLED == "yes" ]]; then
 		export STRONG_CERTS="no"
 	fi
 
+elif [[ $VPN_ENABLED == "no" ]]; then
+	echo "[warn] !!IMPORTANT!! You have set the VPN to disabled, you will NOT be secure!" | ts '%Y-%m-%d %H:%M:%.S'
 fi
 
 export ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's/^[ \t]*//')
