@@ -4,7 +4,7 @@
 set -e
 
 # send stdout and stderr to supervisor log file (to capture output from this script)
-exec 3>&1 4>&2 1>/config/supervisord.log 2>&1
+exec 3>&1 4>&2 1>>/config/supervisord.log 2>&1
 
 cat << "EOF"
 Created by...
@@ -167,3 +167,11 @@ else
 	echo "[warn] ENABLE_PRIVOXY not defined (via -e ENABLE_PRIVOXY), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
 	export ENABLE_PRIVOXY="no"
 fi
+
+# PERMISSIONS_PLACEHOLDER
+
+# restore stdout/stderr (to prevent duplicate logging from supervisor)
+exec 1>&3 2>&4
+
+echo "[info] Starting Supervisor..." | ts '%Y-%m-%d %H:%M:%.S'
+exec /usr/bin/supervisord -c /etc/supervisor.conf -n
