@@ -126,12 +126,12 @@ else
 
 	# disable proto from ovpn file if present, defined via env variable and passed to openvpn via command line argument
 	if $(grep -Fq "proto" "${VPN_CONFIG}"); then
-		sed -i -e 's~^proto~# Disabled, as we pass this value via env var\n;proto~g' "${VPN_CONFIG}"
+		sed -i -e 's~^proto\s~# Disabled, as we pass this value via env var\n;proto ~g' "${VPN_CONFIG}"
 	fi
 
 	# disable remote from ovpn file if present, defined via env variable and passed to openvpn via command line argument
 	if $(grep -Fq "remote" "${VPN_CONFIG}"); then
-		sed -i -e 's~^remote~# Disabled, as we pass this value via env var\n;remote~g' "${VPN_CONFIG}"
+		sed -i -e 's~^remote\s~# Disabled, as we pass this value via env var\n;remote ~g' "${VPN_CONFIG}"
 	fi
 
 	# create the tunnel device
