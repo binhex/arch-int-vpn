@@ -150,6 +150,9 @@ else
 	# split comma seperated string into list from NAME_SERVERS env variable
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
 
+	# remove existing ns, docker injects ns from host and isp ns can block/hijack
+	> /etc/resolv.conf
+
 	# proces sname servers in the list
 	for name_server_item in "${name_server_list[@]}"; do
 
