@@ -4,7 +4,7 @@
 set -e
 
 # define pacman packages
-pacman_packages="kmod net-tools openvpn privoxy ldns moreutils"
+pacman_packages="kmod openvpn privoxy"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
