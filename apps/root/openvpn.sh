@@ -2,8 +2,8 @@
 
 echo "[info] Starting OpenVPN..."
 
-# set sleep period for recheck (in mins)
-sleep_period="10"
+# set sleep period for recheck (in secs)
+sleep_period="30"
 
 # loop and restart openvpn on exit
 while true; do
@@ -14,7 +14,6 @@ while true; do
 
 		# add additional flags to pass credentials and ignore local-remote warnings
 		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ"
-
 
 	elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
@@ -31,7 +30,7 @@ while true; do
 	# kill process openvpn
 	/usr/bin/pkill openvpn
 
-	echo "[warn] Restarting VPN connection in ${sleep_period} mins"
-	sleep "${sleep_period}"m
+	echo "[warn] Restarting VPN connection in ${sleep_period} secs"
+	sleep "${sleep_period}"s
 
 done
