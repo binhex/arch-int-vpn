@@ -8,9 +8,6 @@ if [[ "${VPN_ENABLED}" == "no" ]]; then
 else
 
 	echo "[info] VPN is enabled, beginning configuration of VPN"
-	
-	# create directory as user root
-	mkdir -p /config/openvpn
 
 	# wildcard search for openvpn config files (match on first result)
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print -quit)
@@ -141,11 +138,6 @@ else
 	# get ip for local gateway (eth0)
 	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
 	echo "[info] Default route for container is ${DEFAULT_GATEWAY}"
-
-	# set permissions for /config/openvpn folder
-	echo "[info] Setting permissions recursively on /config/openvpn..."
-	chown -R "${PUID}":"${PGID}" /config/openvpn
-	chmod -R 777 /config/openvpn
 
 	# split comma seperated string into list from NAME_SERVERS env variable
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
