@@ -15,7 +15,7 @@ while true; do
 		# add additional flags to pass credentials and ignore local-remote warnings
 		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ"
 
-	elif [[ "${VPN_PROV}" != "airvpn" ]]; then
+	elif [[ "${VPN_PROV}" != "airvpn" && ! -z "${VPN_USER}" ]]; then
 
 		# add additional flags to pass credentials
 		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
