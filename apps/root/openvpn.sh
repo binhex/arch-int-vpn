@@ -20,6 +20,8 @@ echo "[info] Starting OpenVPN..."
 # run openvpn to create tunnel (daemonized)
 eval "${openvpn_cli}"
 
+echo "[info] OpenVPN started"
+
 # set sleep period for recheck (in secs)
 sleep_period="30"
 
