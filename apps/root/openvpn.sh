@@ -15,33 +15,41 @@ elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
 fi
 
-echo "[info] Starting OpenVPN..."
-
 # run openvpn to create tunnel (daemonized)
+echo "[info] Starting OpenVPN..."
 eval "${openvpn_cli}"
-
 echo "[info] OpenVPN started"
 
+# sleep to give openvpn process chance to start
+sleep 10s
+
+# define location and name of pid file
+pid_file="/home/nobody/downloader.sleep.pid"
+
 # set sleep period for recheck (in secs)
-sleep_period="30"
+sleep_period="10"
 
 # loop and restart openvpn on process termination
 while true; do
 
-	# check if openvpn is running, if not then start and kill sleep process for downloader shell
+	# check if openvpn is running, if not then restart and kill sleep process for downloader shell
 	if ! pgrep -f /usr/bin/openvpn > /dev/null; then
 
-		echo "[warn] OpenVPN process not running, restarting..."
-
-		# run openvpn to create tunnel
+		echo "[warn] OpenVPN process terminated, restarting OpenVPN..."
 		eval "${openvpn_cli}"
+		echo "[info] OpenVPN restarted"
 
-		echo "[info] OpenVPN restarted, killing sleep process for downloader to force ip/port refresh..."
-		pkill -P $(</home/nobody/downloader.sleep.pid) sleep
-		echo "[info] Sleep process killed"
+		if [[ -f "${pid_file}" ]]; then
 
-		# sleep for 1 min to give openvpn chance to start before re-checking
-		sleep 1m
+			echo "[info] Killing sleep command in rtorrent.sh to force refresh of ip/port..."
+			pkill -P $(<"${pid_file}") sleep
+			echo "[info] Refresh process started"
+
+		else
+
+			echo "[info] No PID file containing PID for sleep command in rtorrent.sh present, assuming script hasn't started yet."
+
+		fi
 
 	fi
 
