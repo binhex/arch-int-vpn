@@ -47,7 +47,7 @@ while true; do
 
 		else
 
-			echo "[info] No PID file containing PID for sleep command in rtorrent.sh present, assuming script hasn't started yet."
+			echo "[info] No PID file containing PID for sleep command present, assuming script hasn't started yet."
 
 		fi
 
