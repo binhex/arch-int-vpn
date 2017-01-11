@@ -9,6 +9,15 @@ else
 
 	echo "[info] VPN is enabled, beginning configuration of VPN"
 
+	# create directory to store openvpn config files
+	mkdir -p /config/openvpn
+
+	# set perms and owner for openvpn directory
+	chown -R "${PUID}":"${PGID}" "/config/openvpn" &> /dev/null
+	exit_code_chown=$?
+	chmod -R 777 "/config/openvpn" &> /dev/null
+	exit_code_chmod=$?
+
 	# wildcard search for openvpn config files (match on first result)
 	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print -quit)
 
@@ -159,6 +168,14 @@ else
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
 		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
+	fi
+
+	# set perms and owner for files in /config/openvpn directory
+	chown -R "${PUID}":"${PGID}" "/config/openvpn" &> /dev/null
+	chmod -R 775 "/config/openvpn" &> /dev/null
+
+	if (( ${exit_code_chown} != 0 || ${exit_code_chmod} != 0 )); then
+		echo "[warn] Unable to chown/chmod /config/openvpn, assuming SMB mountpoint"
 	fi
 
 	# setup ip tables and routing for application
