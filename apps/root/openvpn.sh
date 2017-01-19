@@ -39,15 +39,13 @@ while true; do
 		eval "${openvpn_cli}"
 		echo "[info] OpenVPN restarted"
 
+		sleep "${sleep_period}"s
+
 		if [[ -f "${pid_file}" ]]; then
 
 			echo "[info] Killing sleep command in rtorrent.sh to force refresh of ip/port..."
 			pkill -P $(<"${pid_file}") sleep
 			echo "[info] Refresh process started"
-
-		else
-
-			echo "[info] No PID file containing PID for sleep command present, assuming script hasn't started yet."
 
 		fi
 
