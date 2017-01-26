@@ -140,6 +140,11 @@ else
 		sed -i -e 's~^remote\s~# Disabled, as we pass this value via env var\n;remote ~g' "${VPN_CONFIG}"
 	fi
 
+	# disable dev from ovpn file if present, defined via env variable and passed to openvpn via command line argument
+	if $(grep -Fq "dev" "${VPN_CONFIG}"); then
+		sed -i -e 's~^dev\s~# Disabled, as we pass this value via env var\n;dev ~g' "${VPN_CONFIG}"
+	fi
+
 	# create the tunnel device
 	[ -d /dev/net ] || mkdir -p /dev/net
 	[ -c /dev/net/"${VPN_DEVICE_TYPE}" ] || mknod /dev/net/"${VPN_DEVICE_TYPE}" c 10 200

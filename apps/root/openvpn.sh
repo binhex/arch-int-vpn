@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # define common command lne parameters for openvpn
-openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config "${VPN_CONFIG}" --daemon --remote "${VPN_REMOTE}" "${VPN_PORT}" --proto "${VPN_PROTOCOL}" --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60"
+openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daemon --dev ${VPN_DEVICE_TYPE}0 --remote ${VPN_REMOTE} ${VPN_PORT} --proto ${VPN_PROTOCOL} --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60"
 
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
