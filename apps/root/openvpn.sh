@@ -15,6 +15,10 @@ elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
 fi
 
+if [[ "${DEBUG}" == "true" ]]; then
+	echo "OpenVPN command line '${openvpn_cli}'"
+fi
+
 # run openvpn to create tunnel (daemonized)
 echo "[info] Starting OpenVPN..."
 eval "${openvpn_cli}"
