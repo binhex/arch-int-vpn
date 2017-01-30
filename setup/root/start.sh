@@ -52,7 +52,7 @@ else
 	# if ovpn file not found in /config/openvpn and the provider is not pia then exit
 	elif [[ -z "${VPN_CONFIG}" && "${VPN_PROV}" != "pia" ]]; then
 
-		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and restart delugevpn" && exit 1
+		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and then restart this container" && exit 1
 
 	fi
 
@@ -65,7 +65,7 @@ else
 	echo "[info] VPN config file (ovpn extension) is located at ${VPN_CONFIG}"
 
 	# convert CRLF (windows) to LF (unix) for ovpn
-	tr -d '\r' < "${VPN_CONFIG}" > /tmp/convert.ovpn && mv /tmp/convert.ovpn "${VPN_CONFIG}"
+	/usr/bin/dos2unix "${VPN_CONFIG}"
 
 	if [[ "${VPN_PROV}" == "pia" ]]; then
 	
@@ -159,7 +159,7 @@ else
 	# remove existing ns, docker injects ns from host and isp ns can block/hijack
 	> /etc/resolv.conf
 
-	# proces sname servers in the list
+	# process name servers in the list
 	for name_server_item in "${name_server_list[@]}"; do
 
 		# strip whitespace from start and end of name_server_item
