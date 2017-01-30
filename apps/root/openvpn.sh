@@ -20,14 +20,14 @@ echo "[info] Starting OpenVPN..."
 eval "${openvpn_cli}"
 echo "[info] OpenVPN started"
 
-# sleep to give openvpn process chance to start
-sleep 10s
+# run script to check ip is valid for tunnel device (will block until valid)
+source /home/nobody/checkvpnip.sh
 
 # define location and name of pid file
 pid_file="/home/nobody/downloader.sleep.pid"
 
 # set sleep period for recheck (in secs)
-sleep_period="10"
+sleep_period="30"
 
 # loop and restart openvpn on process termination
 while true; do
