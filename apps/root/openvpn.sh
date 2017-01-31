@@ -15,6 +15,13 @@ elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
 fi
 
+if [[ ! -z "${VPN_OPTIONS}" ]]; then
+
+	# add additional flags to openvpn cli
+	openvpn_cli="${openvpn_cli} ${VPN_OPTIONS}"
+
+fi
+
 if [[ "${DEBUG}" == "true" ]]; then
 	echo "OpenVPN command line '${openvpn_cli}'"
 fi
