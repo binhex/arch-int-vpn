@@ -32,7 +32,7 @@ eval "${openvpn_cli}"
 echo "[info] OpenVPN started"
 
 # run script to check ip is valid for tunnel device (will block until valid)
-source /home/nobody/checkvpnip.sh
+source /home/nobody/getvpnip.sh
 
 # define location and name of pid file
 pid_file="/home/nobody/downloader.sleep.pid"
