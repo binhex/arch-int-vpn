@@ -44,7 +44,7 @@ sleep_period="30"
 while true; do
 
 	# check if openvpn is running, if not then restart and kill sleep process for downloader shell
-	if ! pgrep -f /usr/bin/openvpn > /dev/null; then
+	if ! pgrep -x openvpn > /dev/null; then
 
 		echo "[warn] OpenVPN process terminated, restarting OpenVPN..."
 		eval "${openvpn_cli}"

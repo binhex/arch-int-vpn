@@ -17,7 +17,7 @@ sleep_period="10"
 while true; do
 
 	# check if process is running, if not then kill sleep process for downloader shell
-	if ! pgrep -f "${2}" > /dev/null; then
+	if ! pgrep -x "${2}" > /dev/null; then
 
 		if [[ -f "${pid_file}" ]]; then
 
