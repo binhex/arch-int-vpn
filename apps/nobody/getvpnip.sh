@@ -24,5 +24,12 @@ do
 	current_vpn_ip=$(ifconfig "${VPN_DEVICE_TYPE}0" 2>/dev/null | grep 'inet' | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
 done
 
-vpn_ip="${current_vpn_ip}"
-echo "[info] IP address from tunnel valid '${vpn_ip}'"
+echo "[info] Valid IP address from tunnel acquired"
+vpn_ip=${current_vpn_ip}
+
+external_ip=$(curl -L "https://api.ipify.org/?format=json" -s |  jq -r '.ip')
+
+if [[ "${DEBUG}" == "true" ]]; then
+	echo "[info] Local IP address from tunnel is '${vpn_ip}'"
+	echo "[info] External IP address from tunnel is '${external_ip}'"
+fi
