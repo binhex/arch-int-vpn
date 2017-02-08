@@ -6,7 +6,7 @@ openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daem
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	# add additional flags to pass credentials and ignore local-remote warnings
-	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ --up /root/getvpnport.sh --up-delay --up-restart"
+	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ --script-security 2 --up /root/getvpnport.sh --up-delay --up-restart"
 
 elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
