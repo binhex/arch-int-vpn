@@ -7,7 +7,7 @@ get_external_ip() {
 
 	# get external ip from website
 	external_ip=$(curl -L "${external_url}" -s |  jq -r '.ip' || return 1 )
-	
+
 	echo "${external_ip}"
 	return 0
 }
