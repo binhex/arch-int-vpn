@@ -27,7 +27,7 @@ check_valid_ip() {
 }
 
 if [[ "${DEBUG}" == "true" ]]; then
-	echo "[info] Waiting for valid IP address from tunnel..."
+	echo "[debug] Waiting for valid IP address from tunnel..."
 fi
 
 # loop and wait until tunnel adapter local ip is valid
@@ -39,7 +39,7 @@ do
 done
 
 if [[ "${DEBUG}" == "true" ]]; then
-	echo "[info] Valid IP address from tunnel acquired '${current_vpn_ip}'"
+	echo "[debug] Valid IP address from tunnel acquired '${current_vpn_ip}'"
 fi
 
 vpn_ip="${current_vpn_ip}"
@@ -62,5 +62,5 @@ if [ "${exit_code}" != "0" ]; then
 fi
 
 if [[ "${DEBUG}" == "true" ]]; then
-	echo "[info] External IP address from tunnel is '${external_ip}'"
+	echo "[debug] External IP address from tunnel is '${external_ip}'"
 fi
