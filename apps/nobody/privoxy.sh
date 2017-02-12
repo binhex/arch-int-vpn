@@ -15,9 +15,9 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 
 	LAN_IP=$(hostname -i)
 
-	sed -i -e "s~confdir /etc/privoxy~confdir /config/privoxy/g" /config/privoxy/config
-	sed -i -e "s~logdir /var/log/privoxy~logdir /config/privoxy/g" /config/privoxy/config
-	sed -i -e "s~listen-address.*~listen-address ${LAN_IP}:8118/g" /config/privoxy/config
+	sed -i -e "s~confdir /etc/privoxy~confdir /config/privoxy~g" /config/privoxy/config
+	sed -i -e "s~logdir /var/log/privoxy~logdir /config/privoxy~g" /config/privoxy/config
+	sed -i -e "s~listen-address.*~listen-address ${LAN_IP}:8118~g" /config/privoxy/config
 
 	echo "[info] All checks complete, starting Privoxy..."
 

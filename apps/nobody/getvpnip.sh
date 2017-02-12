@@ -26,7 +26,9 @@ check_valid_ip() {
 	return 0
 }
 
-echo "[info] Waiting for valid IP address from tunnel..."
+if [[ "${DEBUG}" == "true" ]]; then
+	echo "[info] Waiting for valid IP address from tunnel..."
+fi
 
 # loop and wait until tunnel adapter local ip is valid
 current_vpn_ip=""
@@ -36,7 +38,10 @@ do
 	current_vpn_ip=$(ifconfig "${VPN_DEVICE_TYPE}0" 2>/dev/null | grep 'inet' | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
 done
 
-echo "[info] Valid IP address from tunnel acquired '${current_vpn_ip}'"
+if [[ "${DEBUG}" == "true" ]]; then
+	echo "[info] Valid IP address from tunnel acquired '${current_vpn_ip}'"
+fi
+
 vpn_ip="${current_vpn_ip}"
 
 # run function to get external ip address from ext site
@@ -56,4 +61,6 @@ if [ "${exit_code}" != "0" ]; then
 
 fi
 
-echo "[info] External IP address from tunnel is '${external_ip}'"
+if [[ "${DEBUG}" == "true" ]]; then
+	echo "[info] External IP address from tunnel is '${external_ip}'"
+fi
