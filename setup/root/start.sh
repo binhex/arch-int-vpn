@@ -183,6 +183,9 @@ else
 		echo "[warn] Unable to chown/chmod /config/openvpn, assuming SMB mountpoint"
 	fi
 
+	# remove file from previous run of getvpnport.sh
+	rm -rf /home/nobody/vpn_incoming_port.txt
+
 	# setup ip tables and routing for application
 	source /root/iptable.sh
 
