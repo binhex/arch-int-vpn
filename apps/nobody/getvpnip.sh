@@ -3,10 +3,13 @@
 # create function to get the external ip address for tunnel
 get_external_ip() {
 
+	# required to force return code from function
+	set -e
+
 	external_url="$1"
 
 	# get external ip from website
-	external_ip=$(curl -L "${external_url}" -s |  jq -r '.ip' || return 1 )
+	external_ip=$(curl --connect-timeout 5 --max-time 10 --retry 3 --retry-max-time 30 -s "${external_url}" |  jq -r '.ip')
 
 	echo "${external_ip}"
 	return 0
