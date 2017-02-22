@@ -16,7 +16,13 @@ get_external_ip() {
 	external_ip=$(curl --connect-timeout 5 --max-time 10 --retry 3 --retry-max-time 30 -s "${external_url}" |  jq -r '.ip')
 
 	echo "${external_ip}"
-	return 0
+
+	# if returned external ip is an empty string then return 1
+	if [[ -z "${external_ip}" ]]; then
+		return 1
+	else
+		return 0
+	fi
 }
 
 # create function to check local ip adress for tunnel is valid
@@ -56,14 +62,14 @@ external_ip="$(get_external_ip "${pri_external_ip_website}")"
 exit_code="${?}"
 
 # if function returns error then try alt ext site
-if [ "${exit_code}" != "0" ]; then
+if [[ "${exit_code}" != "0" ]]; then
 
 	echo "[warn] Cannot determine external IP address from '${pri_external_ip_website}', trying alternative site..."
 
 	external_ip="$(get_external_ip "${sec_external_ip_website}")"
 	exit_code="${?}"
 
-	if [ "${exit_code}" != "0" ]; then
+	if [[ "${exit_code}" != "0" ]]; then
 
 		echo "[warn] Cannot determine external IP address, possible connection issues at present."
 
