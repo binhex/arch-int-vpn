@@ -23,7 +23,7 @@ if [[ ! -z "${VPN_OPTIONS}" ]]; then
 fi
 
 if [[ "${DEBUG}" == "true" ]]; then
-	echo "OpenVPN command line '${openvpn_cli}'"
+	echo "[debug] OpenVPN command line '${openvpn_cli}'"
 fi
 
 # run openvpn to create tunnel (daemonized)

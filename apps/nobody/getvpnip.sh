@@ -1,31 +1,6 @@
 #!/bin/bash
 
-# define websites to connect to in order to get external ip address
-pri_external_ip_website="https://ipinfo.io/"
-sec_external_ip_website="https://jsonip.com/"
-
-# create function to get the external ip address for tunnel
-get_external_ip() {
-
-	# required to force return code from function
-	set -e
-
-	external_url="$1"
-
-	# get external ip from website
-	external_ip=$(curl --connect-timeout 5 --max-time 10 --retry 3 --retry-max-time 30 -s "${external_url}" |  jq -r '.ip')
-
-	echo "${external_ip}"
-
-	# if returned external ip is an empty string then return 1
-	if [[ -z "${external_ip}" ]]; then
-		return 1
-	else
-		return 0
-	fi
-}
-
-# create function to check local ip adress for tunnel is valid
+# function to check ip adress is in valid format (used for local tunnel ip and external ip)
 check_valid_ip() {
 
 	local_vpn_ip="$1"
@@ -57,21 +32,27 @@ fi
 
 vpn_ip="${current_vpn_ip}"
 
-# run function to get external ip address from ext site
-external_ip="$(get_external_ip "${pri_external_ip_website}")"
+# define name servers to connect to in order to get external ip address
+pri_external_ip_ns="ns1.google.com"
+sec_external_ip_ns="resolver1.opendns.com"
+
+# use dns query to get external ip address
+external_ip="$(dig TXT +short o-o.myaddr.l.google.com @${pri_external_ip_ns} | tr -d '"')"
+check_valid_ip "${external_ip}"
 exit_code="${?}"
 
-# if function returns error then try alt ext site
-if [[ "${exit_code}" != "0" ]]; then
+# if error then try secondary name server
+if [[ "${exit_code}" != 0 ]]; then
 
-	echo "[warn] Cannot determine external IP address from '${pri_external_ip_website}', trying alternative site..."
+	echo "[warn] Cannot determine external IP address from '${pri_external_ip_ns}', trying alternative name server..."
 
-	external_ip="$(get_external_ip "${sec_external_ip_website}")"
+	external_ip="$(dig +short myip.opendns.com @${sec_external_ip_ns})"
+	check_valid_ip "${external_ip}"
 	exit_code="${?}"
 
-	if [[ "${exit_code}" != "0" ]]; then
+	if [[ "${exit_code}" != 0 ]]; then
 
-		echo "[warn] Cannot determine external IP address, possible connection issues at present."
+		echo "[warn] Cannot determine external IP address from '${sec_external_ip_ns}', possible connection issues at present."
 
 		external_ip="0.0.0.0"
 		return 1
