@@ -1,13 +1,13 @@
 #!/bin/bash
 
+# ensure we have connectivity before attempting to assign incoming port from pia api
+source /root/checkvpnconn.sh
+
 # statically assigned url for pia api (taken from their script)
 pia_api_url="http://209.222.18.222:2000"
 
 # create pia client id (randomly generated)
 client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
-
-# sleep to allow tunnel to complete initialisation before we attempt to use curl to get port
-sleep 5s
 
 # get an assigned incoming port from pia's api using curl
 echo "[info] Attempting connection to PIA in order to assign a port forward for this session..."
