@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ensure we have connectivity before attempting to detect external ip address
-source /root/checkvpnconn.sh
+source /root/checkvpnconn.sh "google.com" "443"
 
 # define name servers to connect to in order to get external ip address
 pri_external_ip_ns="ns1.google.com"

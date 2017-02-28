@@ -1,10 +1,12 @@
 #!/bin/bash
 
-# ensure we have connectivity before attempting to assign incoming port from pia api
-source /root/checkvpnconn.sh
+# statically assigned url for pia api (taken from pia script)
+pia_api_host="209.222.18.222"
+pia_api_port="2000"
+pia_api_url="http://${pia_api_host}:${pia_api_port}"
 
-# statically assigned url for pia api (taken from their script)
-pia_api_url="http://209.222.18.222:2000"
+# ensure we have connectivity before attempting to assign incoming port from pia api
+source /root/checkvpnconn.sh "${pia_api_host}" "${pia_api_port}"
 
 # create pia client id (randomly generated)
 client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")

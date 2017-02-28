@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# check we have internet connectivity before we attempt to use curl to get vpn incoming port
-check_site_hostname="ns1.google.com"
-check_site_port=53
+# check we have internet connectivity before we attempt to get vpn incoming port and external ip
+check_site_hostname="${1}"
+check_site_port="${2}"
 counter=0
 
 echo "[debug] Checking Internet connectivity..."
