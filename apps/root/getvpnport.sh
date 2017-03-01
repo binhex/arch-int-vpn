@@ -8,6 +8,9 @@ pia_api_url="http://${pia_api_host}:${pia_api_port}"
 # ensure we have connectivity before attempting to assign incoming port from pia api
 source /root/checkvpnconn.sh "${pia_api_host}" "${pia_api_port}"
 
+# ugly hack to wait until pia api is properly accessible (cnanot find a way to identify this state at the moment)
+sleep 5s
+
 # create pia client id (randomly generated)
 client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 

@@ -23,6 +23,9 @@ if [[ ! -z "${VPN_OPTIONS}" ]]; then
 fi
 
 if [[ "${DEBUG}" == "true" ]]; then
+
+	# add additional flag to append to log file stdout/stderr from up scripts
+	openvpn_cli="${openvpn_cli} --log-append /config/supervisord.log"
 	echo "[debug] OpenVPN command line '${openvpn_cli}'"
 fi
 
