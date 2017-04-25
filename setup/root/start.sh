@@ -24,14 +24,11 @@ else
 	# if ovpn filename is not custom.ovpn and the provider is pia then copy included ovpn and certs
 	if [[ "${VPN_CONFIG}" != "/config/openvpn/custom.ovpn" && "${VPN_PROV}" == "pia" ]]; then
 
-		# remove previous certs and ovpn files, user may of switched to strong
-		rm -f /config/openvpn/*
-
 		if [[ "${STRONG_CERTS}" == "yes" ]]; then
 
 			echo "[info] VPN strong certs defined, copying to /config/openvpn/..."
 
-			# copy strong encrption ovpn and certs
+			# copy strong encryption ovpn and certs
 			cp -f /home/nobody/certs/strong/*.crt /config/openvpn/
 			cp -f /home/nobody/certs/strong/*.pem /config/openvpn/
 			cp -f "/home/nobody/certs/strong/strong.ovpn" "/config/openvpn/openvpn.ovpn"
@@ -40,7 +37,7 @@ else
 
 			echo "[info] VPN default certs defined, copying to /config/openvpn/..."
 
-			# copy default encrption ovpn and certs
+			# copy default encryption ovpn and certs
 			cp -f /home/nobody/certs/default/*.crt /config/openvpn/
 			cp -f /home/nobody/certs/default/*.pem /config/openvpn/
 			cp -f "/home/nobody/certs/default/default.ovpn" "/config/openvpn/openvpn.ovpn"
@@ -68,7 +65,7 @@ else
 	/usr/bin/dos2unix "${VPN_CONFIG}"
 
 	if [[ "${VPN_PROV}" == "pia" ]]; then
-	
+
 		if [[ "${VPN_PROTOCOL}" == "udp" && "${VPN_PORT}" != "1198" && "${STRONG_CERTS}" != "yes" ]]; then
 			echo "[warn] VPN provider remote port incorrect, overriding to 1198"
 			VPN_PORT="1198"
@@ -77,20 +74,18 @@ else
 			echo "[warn] VPN provider remote port incorrect, overriding to 1197"
 			VPN_PORT="1197"
 
-		
 		elif [[ "${VPN_PROTOCOL}" == "tcp" && "${VPN_PORT}" != "502" && "${STRONG_CERTS}" != "yes" ]]; then
 			echo "[warn] VPN provider remote port incorrect, overriding to 502"
 			VPN_PORT="502"
 
-		
 		elif [[ "${VPN_PROTOCOL}" == "tcp" && "${VPN_PORT}" != "501" && "${STRONG_CERTS}" == "yes" ]]; then
 			echo "[warn] VPN provider remote port incorrect, overriding to 501"
 			VPN_PORT="501"
 		fi
 	fi
 
-	# if vpn provider not airvpn then write credentials to file (airvpn uses certs for authentication)
-	if [[ "${VPN_PROV}" != "airvpn" ]]; then
+	# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
+	if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
 
 		# store credentials in separate file for authentication
 		if ! $(grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"); then
@@ -130,19 +125,17 @@ else
 		sed -i '/reneg-sec.*/d' "${VPN_CONFIG}"
 	fi
 
-	# disable proto from ovpn file if present, defined via env variable and passed to openvpn via command line argument
-	if $(grep -Fq "proto" "${VPN_CONFIG}"); then
-		sed -i -e 's~^proto\s~# Disabled, as we pass this value via env var\n;proto ~g' "${VPN_CONFIG}"
+	# write env vars to ovpn file (used as phased approach to parse ovpn file)
+	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
+		sed -i -r "s~^;?proto\s.*~proto ${VPN_PROTOCOL}~g" "${VPN_CONFIG}"
 	fi
 
-	# disable remote from ovpn file if present, defined via env variable and passed to openvpn via command line argument
-	if $(grep -Fq "remote" "${VPN_CONFIG}"); then
-		sed -i -e 's~^remote\s~# Disabled, as we pass this value via env var\n;remote ~g' "${VPN_CONFIG}"
+	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" ]]; then
+		sed -i -r "s~^;?remote\s.*~remote ${VPN_REMOTE} ${VPN_PORT}~g" "${VPN_CONFIG}"
 	fi
 
-	# disable dev from ovpn file if present, defined via env variable and passed to openvpn via command line argument
-	if $(grep -Fq "dev" "${VPN_CONFIG}"); then
-		sed -i -e 's~^dev\s~# Disabled, as we pass this value via env var\n;dev ~g' "${VPN_CONFIG}"
+	if [[ ! -z "${VPN_DEVICE_TYPE}" ]]; then
+		sed -i -r "s~^;?dev\s.*~dev ${VPN_DEVICE_TYPE}~g" "${VPN_CONFIG}"
 	fi
 
 	# create the tunnel device
