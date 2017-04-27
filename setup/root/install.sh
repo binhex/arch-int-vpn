@@ -4,7 +4,7 @@
 set -e
 
 # define pacman packages
-pacman_packages="kmod openvpn privoxy dnsutils"
+pacman_packages="kmod openvpn privoxy dnsutils openssl-1.0"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
