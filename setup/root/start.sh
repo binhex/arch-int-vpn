@@ -56,7 +56,6 @@ else
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Environment variables defined as follows" ; set
 		echo "[debug] Directory listing of files in /config/openvpn as follows" ; ls -al /config/openvpn
-		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
 
 	echo "[info] VPN config file (ovpn extension) is located at ${VPN_CONFIG}"
@@ -136,6 +135,10 @@ else
 
 	if [[ ! -z "${VPN_DEVICE_TYPE}" ]]; then
 		sed -i -r "s~^;?dev\s.*~dev ${VPN_DEVICE_TYPE}~g" "${VPN_CONFIG}"
+	fi
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
 
 	# create the tunnel device
