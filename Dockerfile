@@ -5,15 +5,15 @@ MAINTAINER binhex
 ##################
 
 # add install bash script
-ADD setup/root/*.sh /root/
+ADD build/root/*.sh /root/
 
 # add bash script to run openvpn
-ADD apps/root/*.sh /root/
+ADD build/root/*.sh /root/
 
 # add bash script to run privoxy
-ADD apps/nobody/*.sh /home/nobody/
+ADD run/nobody/*.sh /home/nobody/
 
-# add pia certificates and sample openvpn.ovpn file
+# add config files
 ADD config/pia/default/* /home/nobody/certs/default/
 ADD config/pia/strong/* /home/nobody/certs/strong/
 
