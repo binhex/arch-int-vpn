@@ -8,7 +8,7 @@ MAINTAINER binhex
 ADD build/root/*.sh /root/
 
 # add bash script to run openvpn
-ADD build/root/*.sh /root/
+ADD run/root/*.sh /root/
 
 # add bash script to run privoxy
 ADD run/nobody/*.sh /home/nobody/

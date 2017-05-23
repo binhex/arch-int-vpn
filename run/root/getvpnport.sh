@@ -1,15 +1,18 @@
 #!/bin/bash
 
+# statically assigned url for pia api (taken from pia script)
+pia_api_host="209.222.18.222"
+pia_api_port="2000"
+pia_api_url="http://${pia_api_host}:${pia_api_port}"
+
+# remove previous run output file
+rm -f /home/nobody/vpn_incoming_port.txt
+
 # check we are provider pia (note this env var is passed through to up script via openvpn --sentenv option)
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
-	# ensure we have connectivity before attempting to assign incoming port from pia api
-	source /root/checkvpnconn.sh "google.com" "443"
-
-	# statically assigned url for pia api (taken from pia script)
-	pia_api_host="209.222.18.222"
-	pia_api_port="2000"
-	pia_api_url="http://${pia_api_host}:${pia_api_port}"
+	# remove temp file from previous run
+	rm -f /tmp/VPN_INCOMING_PORT
 
 	# create pia client id (randomly generated)
 	client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
@@ -26,6 +29,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 	else
 
 		echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
+
 	fi
 
 	# write port number to text file, this is then read by the downloader script
