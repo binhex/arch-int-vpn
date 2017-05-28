@@ -6,7 +6,7 @@ openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daem
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	# add additional flags to pass credentials and ignore local-remote warnings
-	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ"
+	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ --remap-usr1 SIGHUP"
 
 elif [[ "${VPN_PROV}" != "airvpn" ]]; then
 
@@ -27,6 +27,7 @@ if [[ "${DEBUG}" == "true" ]]; then
 	# add additional flag to append to log file stdout/stderr from up scripts
 	openvpn_cli="${openvpn_cli} --log-append /config/supervisord.log"
 	echo "[debug] OpenVPN command line '${openvpn_cli}'"
+
 fi
 
 # run openvpn to create tunnel (daemonized)
