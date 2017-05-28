@@ -18,8 +18,17 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 	client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
 	# get an assigned incoming port from pia's api using curl
-	curly.sh -rc 6 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
-	VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
+	curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
+
+	if [[ "${exit_code}" != 0 ]]; then
+
+		VPN_INCOMING_PORT=""
+
+	else
+
+		VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
+
+	fi
 
 	if [[ ! "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
