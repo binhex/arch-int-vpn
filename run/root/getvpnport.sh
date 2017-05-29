@@ -19,6 +19,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	# get an assigned incoming port from pia's api using curl
 	curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
+	exit_code=$?
 
 	if [[ "${exit_code}" != 0 ]]; then
 
