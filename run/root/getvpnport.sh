@@ -23,21 +23,22 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 	if [[ "${exit_code}" != 0 ]]; then
 
 		VPN_INCOMING_PORT=""
+		echo "[debug] Unable to assign incoming port to current connection"
 
 	else
 
 		VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
 
-	fi
+		if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
-	if [[ ! "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
+			echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
 
-		VPN_INCOMING_PORT=""
-		echo "[debug] Unable to assign incoming port to current connection"
+		else
 
-	else
+			VPN_INCOMING_PORT=""
+			echo "[debug] Incoming port malformed"
 
-		echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
+		fi
 
 	fi
 

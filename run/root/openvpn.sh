@@ -8,7 +8,9 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 	# add additional flags to pass credentials and ignore local-remote warnings
 	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ --remap-usr1 SIGHUP"
 
-elif [[ "${VPN_PROV}" != "airvpn" ]]; then
+fi
+
+if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
 
 	# add additional flags to pass credentials
 	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
