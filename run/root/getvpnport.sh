@@ -23,8 +23,11 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	if [[ "${exit_code}" != 0 ]]; then
 
-		VPN_INCOMING_PORT=""
-		echo "[debug] Unable to assign incoming port to current connection"
+		echo "[warn] Unable to assign incoming port (PIA API down or endpoint doesn't support incoming port?)"
+
+		echo "[info] Terminating OpenVPN process to force retry for incoming port..."
+		kill -2 $(cat /root/openvpn.pid)
+		exit 1
 
 	else
 
@@ -33,18 +36,21 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
 			echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
+			
+			# write port number to text file (read by downloader script)
+			echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
 
 		else
 
-			VPN_INCOMING_PORT=""
-			echo "[debug] Incoming port malformed"
+			echo "[warn] PIA incoming port malformed"
+
+			echo "[info] Terminating OpenVPN process to force retry for incoming port..."
+			kill -2 $(cat /root/openvpn.pid)
+			exit 1
 
 		fi
 
 	fi
-
-	# write port number to text file, this is then read by the downloader script
-	echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
 
 else
 
