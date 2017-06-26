@@ -11,49 +11,64 @@ rm -f /home/nobody/vpn_incoming_port.txt
 # check we are provider pia (note this env var is passed through to up script via openvpn --sentenv option)
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
-	# remove temp file from previous run
-	rm -f /tmp/VPN_INCOMING_PORT
+	if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
 
-	# create pia client id (randomly generated)
-	client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Port forwarding disabled, skipping incoming port detection"
+		fi
 
-	# get an assigned incoming port from pia's api using curl
-	curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
-	exit_code=$?
-
-	if [[ "${exit_code}" != 0 ]]; then
-
-		echo "[warn] Unable to assign incoming port (PIA API down or endpoint doesn't support incoming port?)"
-
-		echo "[info] Terminating OpenVPN process to force retry for incoming port..."
-		kill -2 $(cat /root/openvpn.pid)
-		exit 1
+		# create empty incoming port file (read by downloader script)
+		touch /home/nobody/vpn_incoming_port.txt
 
 	else
 
-		VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
+		# remove temp file from previous run
+		rm -f /tmp/VPN_INCOMING_PORT
 
-		if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
+		# create pia client id (randomly generated)
+		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
-			echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
-			
-			# write port number to text file (read by downloader script)
-			echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
+		# get an assigned incoming port from pia's api using curl
+		curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
+		exit_code=$?
 
-		else
+		if [[ "${exit_code}" != 0 ]]; then
 
-			echo "[warn] PIA incoming port malformed"
-
+			echo "[warn] Unable to assign incoming port, PIA API down and/or endpoint doesn't support port forwarding"
 			echo "[info] Terminating OpenVPN process to force retry for incoming port..."
+
 			kill -2 $(cat /root/openvpn.pid)
 			exit 1
 
-		fi
+		else
 
-	fi
+			VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
+
+			if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
+
+				if [[ "${DEBUG}" == "true" ]]; then
+					echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
+				fi
+
+				# write port number to text file (read by downloader script)
+				echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
+
+			else
+
+				echo "[warn] PIA incoming port malformed"
+				echo "[info] Terminating OpenVPN process to force retry for incoming port..."
+
+				kill -2 $(cat /root/openvpn.pid)
+				exit 1
+
+			fi
+
+		fi
 
 else
 
-	echo "[debug] VPN provider ${VPN_PROV} is != pia, skipping incoming port detection"
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] VPN provider ${VPN_PROV} is != pia, skipping incoming port detection"
+	fi
 
 fi

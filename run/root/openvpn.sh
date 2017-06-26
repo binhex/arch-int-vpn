@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # define common command lne parameters for openvpn
-openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daemon --dev ${VPN_DEVICE_TYPE}0 --remote ${VPN_REMOTE} ${VPN_PORT} --proto ${VPN_PROTOCOL} --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60 --setenv VPN_PROV ${VPN_PROV} --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid"
+openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daemon --dev ${VPN_DEVICE_TYPE}0 --remote ${VPN_REMOTE} ${VPN_PORT} --proto ${VPN_PROTOCOL} --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60 --setenv VPN_PROV ${VPN_PROV} --setenv DEBUG ${DEBUG} --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid"
 
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	# add additional flags to pass credentials and ignore local-remote warnings
-	openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf --disable-occ --remap-usr1 SIGHUP"
+	openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD ${STRICT_PORT_FORWARD} --auth-user-pass credentials.conf --disable-occ --remap-usr1 SIGHUP --log-append /config/supervisord.log"
 
 fi
 
@@ -26,8 +26,6 @@ fi
 
 if [[ "${DEBUG}" == "true" ]]; then
 
-	# add additional flag to append to log file stdout/stderr from up scripts
-	openvpn_cli="${openvpn_cli} --log-append /config/supervisord.log"
 	echo "[debug] OpenVPN command line '${openvpn_cli}'"
 
 fi
