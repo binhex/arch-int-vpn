@@ -65,6 +65,8 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		fi
 
+	fi
+
 else
 
 	if [[ "${DEBUG}" == "true" ]]; then
