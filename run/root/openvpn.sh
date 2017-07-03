@@ -6,7 +6,7 @@ openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daem
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	# add additional flags to pass credentials and ignore local-remote warnings
-	openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD ${STRICT_PORT_FORWARD} --auth-user-pass credentials.conf --disable-occ --remap-usr1 SIGHUP --log-append /config/supervisord.log"
+	openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD ${STRICT_PORT_FORWARD} --auth-user-pass credentials.conf --disable-occ --remap-usr1 SIGHUP --log-append /dev/stdout"
 
 fi
 
