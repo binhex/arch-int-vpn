@@ -22,6 +22,8 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	else
 
+		echo "[info] Strict port forwarding enabled, attempting to configure an incoming port..."
+		
 		# remove temp file from previous run
 		rm -f /tmp/VPN_INCOMING_PORT
 
@@ -34,7 +36,18 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		if [[ "${exit_code}" != 0 ]]; then
 
-			echo "[warn] Unable to assign incoming port, PIA API down and/or endpoint doesn't support port forwarding"
+			echo "[warn] Unable to assign incoming port, possible reasons for this:-"
+			echo "[info] PIA API currently down (script will auto retry)"
+			echo "[info] or"
+			echo "[info] PIA endpoint doesn't support port forwarding, a list of endpoints that do support port forwarding is as follows:-"
+			echo "[info] - ca-toronto.privateinternetaccess.com (CA Toronto)"
+			echo "[info] - ca.privateinternetaccess.com (CA Montreal)"
+			echo "[info] - nl.privateinternetaccess.com (Netherlands)"
+			echo "[info] - nl.privateinternetaccess.com (Switzerland)"
+			echo "[info] - sweden.privateinternetaccess.com (Sweden)"
+			echo "[info] - sweden.privateinternetaccess.com (France)"
+			echo "[info] - ro.privateinternetaccess.com (Romania)"
+			echo "[info] - israel.privateinternetaccess.com (Israel)"
 			echo "[info] Terminating OpenVPN process to force retry for incoming port..."
 
 			kill -2 $(cat /root/openvpn.pid)
