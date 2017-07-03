@@ -22,8 +22,10 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	else
 
-		echo "[info] Strict port forwarding enabled, attempting to configure an incoming port..."
-		
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[info] Strict port forwarding enabled, attempting to assign an incoming port..."
+		fi
+
 		# remove temp file from previous run
 		rm -f /tmp/VPN_INCOMING_PORT
 
@@ -34,24 +36,24 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
 		exit_code=$?
 
+		pia_domain_suffix="privateinternetaccess.com"
+		pia_port_forward_enabled_endpoints_array=("ca-toronto.${pia_domain_suffix} (CA Toronto)" "ca.${pia_domain_suffix} (CA Montreal)" "nl.${pia_domain_suffix} (Netherlands)" "swiss.${pia_domain_suffix} (Switzerland)" "sweden.${pia_domain_suffix} (Sweden)" "france.${pia_domain_suffix} (France)" "ro.${pia_domain_suffix} (Romania)" "israel.${pia_domain_suffix} (Israel)")
+
 		if [[ "${exit_code}" != 0 ]]; then
 
-			echo "[warn] Unable to assign incoming port, possible reasons for this:-"
-			echo "[info] PIA API currently down (script will auto retry)"
-			echo "[info] or"
-			echo "[info] PIA endpoint doesn't support port forwarding, a list of endpoints that do support port forwarding is as follows:-"
-			echo "[info] - ca-toronto.privateinternetaccess.com (CA Toronto)"
-			echo "[info] - ca.privateinternetaccess.com (CA Montreal)"
-			echo "[info] - nl.privateinternetaccess.com (Netherlands)"
-			echo "[info] - nl.privateinternetaccess.com (Switzerland)"
-			echo "[info] - sweden.privateinternetaccess.com (Sweden)"
-			echo "[info] - sweden.privateinternetaccess.com (France)"
-			echo "[info] - ro.privateinternetaccess.com (Romania)"
-			echo "[info] - israel.privateinternetaccess.com (Israel)"
-			echo "[info] Terminating OpenVPN process to force retry for incoming port..."
+			if [[ " ${pia_port_forward_enabled_endpoints_array[@]} " =~ " ${VPN_REMOTE} " ]]; then
 
-			kill -2 $(cat /root/openvpn.pid)
-			exit 1
+				echo "[warn] PIA API currently down, terminating OpenVPN process to force retry for incoming port..."
+				kill -2 $(cat /root/openvpn.pid)
+				exit 1
+
+			else
+
+				echo "[warn] PIA endpoint '${VPN_REMOTE}' doesn't support port forwarding, DL/UL speeds will be slow"
+				echo "[info] Please consider switching to an endpoint that does support port forwarding, shown below:-"
+				printf '[info] %s\n' "${pia_port_forward_enabled_endpoints_array[@]}"
+
+			fi
 
 		else
 
@@ -68,9 +70,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 			else
 
-				echo "[warn] PIA incoming port malformed"
-				echo "[info] Terminating OpenVPN process to force retry for incoming port..."
-
+				echo "[warn] PIA incoming port malformed, terminating OpenVPN process to force retry for incoming port..."
 				kill -2 $(cat /root/openvpn.pid)
 				exit 1
 
