@@ -53,6 +53,9 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 				echo "[info] Please consider switching to an endpoint that does support port forwarding, shown below:-"
 				printf '[info] %s\n' "${pia_port_forward_enabled_endpoints_array[@]}"
 
+				# create empty incoming port file (read by downloader script)
+				touch /home/nobody/vpn_incoming_port.txt
+
 			fi
 
 		else
