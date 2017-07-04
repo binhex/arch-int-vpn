@@ -81,6 +81,9 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		fi
 
+		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+		chmod +r /home/nobody/vpn_incoming_port.txt
+
 	fi
 
 else
