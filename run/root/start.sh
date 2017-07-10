@@ -126,7 +126,11 @@ else
 
 	# write env vars to ovpn file (used as phased approach to parse ovpn file)
 	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
-		sed -i -r "s~^;?proto\s.*~proto ${VPN_PROTOCOL}~g" "${VPN_CONFIG}"
+		if [[ "${VPN_PROTOCOL}" == "tcp" ]]; then
+			sed -i -r "s~^;?proto\s.*~proto tcp-client~g" "${VPN_CONFIG}"
+		else
+			sed -i -r "s~^;?proto\s.*~proto udp~g" "${VPN_CONFIG}"
+		fi
 	fi
 
 	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" ]]; then
