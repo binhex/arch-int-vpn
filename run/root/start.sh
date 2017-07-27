@@ -9,78 +9,9 @@ else
 
 	echo "[info] VPN is enabled, beginning configuration of VPN"
 
-	# create directory to store openvpn config files
-	mkdir -p /config/openvpn
-
-	# set perms and owner for openvpn directory
-	chown -R "${PUID}":"${PGID}" "/config/openvpn" &> /dev/null
-	exit_code_chown=$?
-	chmod -R 777 "/config/openvpn" &> /dev/null
-	exit_code_chmod=$?
-
-	# wildcard search for openvpn config files (match on first result)
-	VPN_CONFIG=$(find /config/openvpn -maxdepth 1 -name "*.ovpn" -print -quit)
-
-	# if ovpn filename is not custom.ovpn and the provider is pia then copy included ovpn and certs
-	if [[ "${VPN_CONFIG}" != "/config/openvpn/custom.ovpn" && "${VPN_PROV}" == "pia" ]]; then
-
-		if [[ "${STRONG_CERTS}" == "yes" ]]; then
-
-			echo "[info] VPN strong certs defined, copying to /config/openvpn/..."
-
-			# copy strong encryption ovpn and certs
-			cp -f /home/nobody/certs/strong/*.crt /config/openvpn/
-			cp -f /home/nobody/certs/strong/*.pem /config/openvpn/
-			cp -f "/home/nobody/certs/strong/strong.ovpn" "/config/openvpn/openvpn.ovpn"
-
-		else
-
-			echo "[info] VPN default certs defined, copying to /config/openvpn/..."
-
-			# copy default encryption ovpn and certs
-			cp -f /home/nobody/certs/default/*.crt /config/openvpn/
-			cp -f /home/nobody/certs/default/*.pem /config/openvpn/
-			cp -f "/home/nobody/certs/default/default.ovpn" "/config/openvpn/openvpn.ovpn"
-
-		fi
-
-		VPN_CONFIG="/config/openvpn/openvpn.ovpn"
-
-	# if ovpn file not found in /config/openvpn and the provider is not pia then exit
-	elif [[ -z "${VPN_CONFIG}" && "${VPN_PROV}" != "pia" ]]; then
-
-		echo "[crit] Missing OpenVPN configuration file in /config/openvpn/ (no files with an ovpn extension exist) please create and then restart this container" && exit 1
-
-	fi
-
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Environment variables defined as follows" ; set
 		echo "[debug] Directory listing of files in /config/openvpn as follows" ; ls -al /config/openvpn
-	fi
-
-	echo "[info] VPN config file (ovpn extension) is located at ${VPN_CONFIG}"
-
-	# convert CRLF (windows) to LF (unix) for ovpn
-	/usr/bin/dos2unix "${VPN_CONFIG}"
-
-	if [[ "${VPN_PROV}" == "pia" ]]; then
-
-		if [[ "${VPN_PROTOCOL}" == "udp" && "${VPN_PORT}" != "1198" && "${STRONG_CERTS}" != "yes" ]]; then
-			echo "[warn] VPN provider remote port incorrect, overriding to 1198"
-			VPN_PORT="1198"
-
-		elif [[ "${VPN_PROTOCOL}" == "udp" && "${VPN_PORT}" != "1197" && "${STRONG_CERTS}" == "yes" ]]; then
-			echo "[warn] VPN provider remote port incorrect, overriding to 1197"
-			VPN_PORT="1197"
-
-		elif [[ "${VPN_PROTOCOL}" == "tcp" && "${VPN_PORT}" != "502" && "${STRONG_CERTS}" != "yes" ]]; then
-			echo "[warn] VPN provider remote port incorrect, overriding to 502"
-			VPN_PORT="502"
-
-		elif [[ "${VPN_PROTOCOL}" == "tcp" && "${VPN_PORT}" != "501" && "${STRONG_CERTS}" == "yes" ]]; then
-			echo "[warn] VPN provider remote port incorrect, overriding to 501"
-			VPN_PORT="501"
-		fi
 	fi
 
 	# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
@@ -124,23 +55,6 @@ else
 		sed -i '/reneg-sec.*/d' "${VPN_CONFIG}"
 	fi
 
-	# write env vars to ovpn file (used as phased approach to parse ovpn file)
-	if [[ ! -z "${VPN_PROTOCOL}" ]]; then
-		if [[ "${VPN_PROTOCOL}" == "tcp" ]]; then
-			sed -i -r "s~^;?proto\s.*~proto tcp-client~g" "${VPN_CONFIG}"
-		else
-			sed -i -r "s~^;?proto\s.*~proto udp~g" "${VPN_CONFIG}"
-		fi
-	fi
-
-	if [[ ! -z "${VPN_REMOTE}" && ! -z "${VPN_PORT}" ]]; then
-		sed -i -r "s~^;?remote\s.*~remote ${VPN_REMOTE} ${VPN_PORT}~g" "${VPN_CONFIG}"
-	fi
-
-	if [[ ! -z "${VPN_DEVICE_TYPE}" ]]; then
-		sed -i -r "s~^;?dev\s.*~dev ${VPN_DEVICE_TYPE}~g" "${VPN_CONFIG}"
-	fi
-
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
@@ -173,14 +87,6 @@ else
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
 		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
-	fi
-
-	# set perms and owner for files in /config/openvpn directory
-	chown -R "${PUID}":"${PGID}" "/config/openvpn" &> /dev/null
-	chmod -R 775 "/config/openvpn" &> /dev/null
-
-	if (( ${exit_code_chown} != 0 || ${exit_code_chmod} != 0 )); then
-		echo "[warn] Unable to chown/chmod /config/openvpn, assuming SMB mountpoint"
 	fi
 
 	# setup ip tables and routing for application

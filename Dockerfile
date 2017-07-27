@@ -13,10 +13,6 @@ ADD run/root/*.sh /root/
 # add bash script to run privoxy
 ADD run/nobody/*.sh /home/nobody/
 
-# add config files
-ADD config/pia/default/* /home/nobody/certs/default/
-ADD config/pia/strong/* /home/nobody/certs/strong/
-
 # install app
 #############
 
