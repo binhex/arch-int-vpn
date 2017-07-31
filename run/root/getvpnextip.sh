@@ -8,6 +8,9 @@ retry_count=30
 # remove previous run output file
 rm -f /home/nobody/vpn_external_ip.txt
 
+# wait for vpn tunnel to come up before proceeding
+source /home/nobody/getvpnip.sh
+
 while true; do
 
 	external_ip="$(dig TXT +short o-o.myaddr.l.google.com @${pri_external_ip_ns} | tr -d '"')"
