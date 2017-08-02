@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # define common command lne parameters for openvpn
-openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60 --setenv VPN_PROV ${VPN_PROV} --setenv DEBUG ${DEBUG} --setenv VPN_DEVICE_TYPE ${VPN_DEVICE_TYPE} --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid"
+openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config ${VPN_CONFIG} --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60 --setenv VPN_PROV ${VPN_PROV} --setenv DEBUG ${DEBUG} --setenv VPN_DEVICE_TYPE ${VPN_DEVICE_TYPE} --setenv VPN_REMOTE ${VPN_REMOTE} --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout"
 
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
 	# add pia specific flags
-	openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD ${STRICT_PORT_FORWARD} --disable-occ --remap-usr1 SIGHUP --log-append /dev/stdout"
+	openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD ${STRICT_PORT_FORWARD} --disable-occ"
 
 fi
 
