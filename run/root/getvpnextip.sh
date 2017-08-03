@@ -13,7 +13,7 @@ source /home/nobody/getvpnip.sh
 
 while true; do
 
-	external_ip="$(dig TXT +short o-o.myaddr.l.google.com @${pri_external_ip_ns} | tr -d '"')"
+	external_ip="$(dig -b ${vpn_ip} TXT +short o-o.myaddr.l.google.com @${pri_external_ip_ns} | tr -d '"')"
 	exit_code="${?}"
 
 	# if error then try secondary name server
@@ -21,7 +21,7 @@ while true; do
 
 		echo "[warn] Failed to get external IP from Google NS, trying OpenDNS..."
 
-		external_ip="$(dig +short myip.opendns.com @${sec_external_ip_ns})"
+		external_ip="$(dig -b ${vpn_ip} +short myip.opendns.com @${sec_external_ip_ns})"
 		exit_code="${?}"
 
 		if [[ "${exit_code}" != 0 ]]; then
