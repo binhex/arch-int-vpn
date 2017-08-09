@@ -84,9 +84,21 @@ else
 
 	done
 
+	# if the vpn_remote is NOT an ip address then resolve it
+	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+
+		# resolve vpn remote endpoint to ip (used to write to hosts file)
+		vpn_remote_ip=$(dig +short "${VPN_REMOTE}" | sed -n 1p)
+
+		# write vpn remote endpoint to hosts file (used for name resolution on lan when tunnel restarted due to iptable dns block)
+		echo "${vpn_remote_ip}	${VPN_REMOTE}"  >> /etc/hosts
+
+	fi
+
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
 		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
+		echo "[debug] Show contents of hosts file" ; cat /etc/hosts
 	fi
 
 	# setup ip tables and routing for application
