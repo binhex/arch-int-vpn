@@ -91,7 +91,11 @@ else
 		vpn_remote_ip=$(dig +short "${VPN_REMOTE}" | sed -n 1p)
 
 		# write vpn remote endpoint to hosts file (used for name resolution on lan when tunnel restarted due to iptable dns block)
-		echo "${vpn_remote_ip}	${VPN_REMOTE}"  >> /etc/hosts
+		if [[ ! -z "${vpn_remote_ip}" ]]; then
+			echo "${vpn_remote_ip}	${VPN_REMOTE}"  >> /etc/hosts
+		else
+			echo "[crit] ${VPN_REMOTE} cannot be resolved, possible DNS issues" ; exit 1
+		fi
 
 	fi
 
