@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # define name servers to connect to in order to get external ip address
-pri_external_ip_ns="ns1.google.com"
-sec_external_ip_ns="resolver1.opendns.com"
+google_ip_ns="216.239.32.10"
+opendns_ip_ns="208.67.222.222"
 retry_count=30
 
 # remove previous run output file
@@ -13,18 +13,16 @@ source /home/nobody/getvpnip.sh
 
 while true; do
 
-	external_ip="$(dig -b ${vpn_ip} TXT +short o-o.myaddr.l.google.com @${pri_external_ip_ns} | tr -d '"')"
-	exit_code="${?}"
+	echo "[info] Attempting to get external IP from Google NS..."
+	external_ip="$(dig -b ${vpn_ip} TXT +short o-o.myaddr.l.google.com @${google_ip_ns} | tr -d '"')"
 
 	# if error then try secondary name server
-	if [[ "${exit_code}" != 0 ]]; then
+	if [[ ! "${external_ip}" ]]; then
 
 		echo "[warn] Failed to get external IP from Google NS, trying OpenDNS..."
+		external_ip="$(dig -b ${vpn_ip} +short myip.opendns.com @${opendns_ip_ns})"
 
-		external_ip="$(dig -b ${vpn_ip} +short myip.opendns.com @${sec_external_ip_ns})"
-		exit_code="${?}"
-
-		if [[ "${exit_code}" != 0 ]]; then
+		if [[ ! "${external_ip}" ]]; then
 
 			if [ "${retry_count}" -eq "0" ]; then
 
@@ -36,6 +34,7 @@ while true; do
 			else
 
 				retry_count=$((retry_count-1))
+				echo "[warn] Cannot determine external IP address, retrying..."
 				sleep 1s
 
 			fi
