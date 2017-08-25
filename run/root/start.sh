@@ -77,7 +77,7 @@ else
 	for name_server_item in "${name_server_list[@]}"; do
 
 		# strip whitespace from start and end of name_server_item
-		name_server_item=$(echo "${name_server_item}" | sed -e 's/^[ \t]*//')
+		name_server_item=$(echo "${name_server_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 		echo "[info] Adding ${name_server_item} to /etc/resolv.conf"
 		echo "nameserver ${name_server_item}" >> /etc/resolv.conf
