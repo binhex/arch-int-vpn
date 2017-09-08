@@ -92,7 +92,7 @@ else
 
 		# write vpn remote endpoint to hosts file (used for name resolution on lan when tunnel restarted due to iptable dns block)
 		if [[ ! -z "${vpn_remote_ip}" ]]; then
-			echo "${vpn_remote_ip}	${VPN_REMOTE}"  >> /etc/hosts
+			echo "${vpn_remote_ip}    ${VPN_REMOTE}"  >> /etc/hosts
 		else
 			echo "[crit] ${VPN_REMOTE} cannot be resolved, possible DNS issues" ; exit 1
 		fi
