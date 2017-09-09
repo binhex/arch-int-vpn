@@ -88,11 +88,11 @@ else
 	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
 
 		# resolve vpn remote endpoint to ip (used to write to hosts file)
-		vpn_remote_ip=$(dig +short "${VPN_REMOTE}" | sed -n 1p)
+		vpn_remote_ip=$(dig +short "${VPN_REMOTE}" | tail -n1)
 
 		# write vpn remote endpoint to hosts file (used for name resolution on lan when tunnel restarted due to iptable dns block)
 		if [[ ! -z "${vpn_remote_ip}" ]]; then
-			echo "${vpn_remote_ip}    ${VPN_REMOTE}"  >> /etc/hosts
+			echo "${vpn_remote_ip}    ${VPN_REMOTE}" >> /etc/hosts
 		else
 			echo "[crit] ${VPN_REMOTE} cannot be resolved, possible DNS issues" ; exit 1
 		fi
