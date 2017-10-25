@@ -36,7 +36,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
 		# get an assigned incoming port from pia's api using curl
-		curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
+		/root/curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
 		exit_code=$?
 
 		pia_domain_suffix="privateinternetaccess.com"
