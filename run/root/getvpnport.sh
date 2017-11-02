@@ -35,16 +35,26 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		# create pia client id (randomly generated)
 		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
-		# get an assigned incoming port from pia's api using curl
-		/root/curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
-		exit_code=$?
-
+		# create array of endpoints that support port forwarding (pia only)
 		pia_domain_suffix="privateinternetaccess.com"
 		pia_port_forward_enabled_endpoints_array=("ca-toronto.${pia_domain_suffix} (CA Toronto)" "ca.${pia_domain_suffix} (CA Montreal)" "nl.${pia_domain_suffix} (Netherlands)" "swiss.${pia_domain_suffix} (Switzerland)" "sweden.${pia_domain_suffix} (Sweden)" "france.${pia_domain_suffix} (France)" "ro.${pia_domain_suffix} (Romania)" "israel.${pia_domain_suffix} (Israel)")
 
-		if [[ "${exit_code}" != 0 ]]; then
+		if [[ ! " ${pia_port_forward_enabled_endpoints_array[@]} " =~ " ${VPN_REMOTE} " ]]; then
 
-			if [[ " ${pia_port_forward_enabled_endpoints_array[@]} " =~ " ${VPN_REMOTE} " ]]; then
+			echo "[warn] PIA endpoint '${VPN_REMOTE}' doesn't support port forwarding, DL/UL speeds will be slow"
+			echo "[info] Please consider switching to an endpoint that does support port forwarding, shown below:-"
+			printf '[info] %s\n' "${pia_port_forward_enabled_endpoints_array[@]}"
+
+			# create empty incoming port file (read by downloader script)
+			touch /home/nobody/vpn_incoming_port.txt
+
+		else
+
+			# get an assigned incoming port from pia's api using curl
+			/root/curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
+			exit_code=$?
+
+			if [[ "${exit_code}" != 0 ]]; then
 
 				echo "[warn] PIA API currently down, terminating OpenVPN process to force retry for incoming port..."
 				kill -2 $(cat /root/openvpn.pid)
@@ -52,33 +62,24 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 			else
 
-				echo "[warn] PIA endpoint '${VPN_REMOTE}' doesn't support port forwarding, DL/UL speeds will be slow"
-				echo "[info] Please consider switching to an endpoint that does support port forwarding, shown below:-"
-				printf '[info] %s\n' "${pia_port_forward_enabled_endpoints_array[@]}"
+				VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
 
-				# create empty incoming port file (read by downloader script)
-				touch /home/nobody/vpn_incoming_port.txt
+				if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
-			fi
+					if [[ "${DEBUG}" == "true" ]]; then
+						echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
+					fi
 
-		else
+					# write port number to text file (read by downloader script)
+					echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
 
-			VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
+				else
 
-			if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
+					echo "[warn] PIA incoming port malformed, terminating OpenVPN process to force retry for incoming port..."
+					kill -2 $(cat /root/openvpn.pid)
+					exit 1
 
-				if [[ "${DEBUG}" == "true" ]]; then
-					echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
 				fi
-
-				# write port number to text file (read by downloader script)
-				echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
-
-			else
-
-				echo "[warn] PIA incoming port malformed, terminating OpenVPN process to force retry for incoming port..."
-				kill -2 $(cat /root/openvpn.pid)
-				exit 1
 
 			fi
 

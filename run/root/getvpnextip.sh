@@ -28,7 +28,7 @@ check_valid_ip() {
 while true; do
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Attempting to get external IP using Name Server '${pri_ns}''..."
+		echo "[debug] Attempting to get external IP using Name Server '${pri_ns}'..."
 	fi
 
 	external_ip="$(dig -b ${vpn_ip} TXT +short o-o.myaddr.l.google.com @${pri_ns} 2> /dev/null | tr -d '"')"
