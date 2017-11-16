@@ -40,19 +40,73 @@ else
 
 	fi
 
-	# remove ping and ping-restart from ovpn file if present, now using flag --keepalive
-	if $(grep -Fq "ping" "${VPN_CONFIG}"); then
-		sed -i '/ping.*/d' "${VPN_CONFIG}"
-	fi
+	# remove ping and ping-restart from ovpn file if present (using --keepalive)
+	sed -i '/^ping.*/d' "${VPN_CONFIG}"
 
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
-	if $(grep -Fq "persist-tun" "${VPN_CONFIG}"); then
-		sed -i '/persist-tun/d' "${VPN_CONFIG}"
+	sed -i '/^persist-tun/d' "${VPN_CONFIG}"
+
+	# remove reneg-sec from ovpn file if present, this is removed to prevent re-checks and dropouts
+	sed -i '/^reneg-sec.*/d' "${VPN_CONFIG}"
+
+	# remove up script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
+	sed -i '/^up\s.*/d' "${VPN_CONFIG}"
+
+	# remove down script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
+	sed -i '/^down\s.*/d' "${VPN_CONFIG}"
+
+	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
+	sed -i '/^route-ipv6/d' "${VPN_CONFIG}"
+
+	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
+	sed -i '/^ifconfig-ipv6/d' "${VPN_CONFIG}"
+
+	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
+	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
+
+	# add in pull filter to prevent ping and ping-restart (using --keepalive)
+	if ! $(grep -Fq 'pull-filter ignore "ping"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "ping"' >> "${VPN_CONFIG}"
 	fi
 
-	# remove reneg-sec from ovpn file if present, this is disabled via command line to prevent re-checks and dropouts
-	if $(grep -Fq "reneg-sec" "${VPN_CONFIG}"); then
-		sed -i '/reneg-sec.*/d' "${VPN_CONFIG}"
+	# add in pull filter to prevent ping and ping-restart (using --keepalive)
+	if ! $(grep -Fq 'pull-filter ignore "ping-restart"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "ping-restart"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to allow reconection to tunnel on disconnect
+	if ! $(grep -Fq 'pull-filter ignore "persist-tun"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "persist-tun"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to prevent re-checks and dropouts
+	if ! $(grep -Fq 'pull-filter ignore "reneg-sec"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "reneg-sec"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to prevent execution of up/down scripts (not required)
+	if ! $(grep -Fq 'pull-filter ignore "up"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "up"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to prevent execution of up/down scripts (not required)
+	if ! $(grep -Fq 'pull-filter ignore "down"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "down"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to prevent ipv6 (iptables not configured to support ipv6)
+	if ! $(grep -Fq 'pull-filter ignore "route-ipv6"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "route-ipv6"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to prevent ipv6 (iptables not configured to support ipv6)
+	if ! $(grep -Fq 'pull-filter ignore "ifconfig-ipv6"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "ifconfig-ipv6"' >> "${VPN_CONFIG}"
+	fi
+
+	# add in pull filter to prevent ipv6 (iptables not configured to support ipv6)
+	if ! $(grep -Fq 'pull-filter ignore "tun-ipv6"' "${VPN_CONFIG}"); then
+		echo 'pull-filter ignore "tun-ipv6"' >> "${VPN_CONFIG}"
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
