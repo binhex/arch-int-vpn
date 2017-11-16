@@ -64,51 +64,6 @@ else
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
 	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
 
-	# add in pull filter to prevent ping and ping-restart (using --keepalive)
-	if ! $(grep -Fq 'pull-filter ignore "ping"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "ping"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent ping and ping-restart (using --keepalive)
-	if ! $(grep -Fq 'pull-filter ignore "ping-restart"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "ping-restart"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to allow reconection to tunnel on disconnect
-	if ! $(grep -Fq 'pull-filter ignore "persist-tun"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "persist-tun"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent re-checks and dropouts
-	if ! $(grep -Fq 'pull-filter ignore "reneg-sec"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "reneg-sec"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent execution of up/down scripts (not required)
-	if ! $(grep -Fq 'pull-filter ignore "up"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "up"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent execution of up/down scripts (not required)
-	if ! $(grep -Fq 'pull-filter ignore "down"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "down"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent ipv6 (iptables not configured to support ipv6)
-	if ! $(grep -Fq 'pull-filter ignore "route-ipv6"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "route-ipv6"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent ipv6 (iptables not configured to support ipv6)
-	if ! $(grep -Fq 'pull-filter ignore "ifconfig-ipv6"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "ifconfig-ipv6"' >> "${VPN_CONFIG}"
-	fi
-
-	# add in pull filter to prevent ipv6 (iptables not configured to support ipv6)
-	if ! $(grep -Fq 'pull-filter ignore "tun-ipv6"' "${VPN_CONFIG}"); then
-		echo 'pull-filter ignore "tun-ipv6"' >> "${VPN_CONFIG}"
-	fi
-
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
