@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # define common command lne parameters for openvpn
-openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config '${VPN_CONFIG}' --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60 --setenv VPN_PROV '${VPN_PROV}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_REMOTE '${VPN_REMOTE}' --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'ping' --pull-filter ignore 'ping-restart' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec'"
+openvpn_cli="/usr/bin/openvpn --cd /config/openvpn --config '${VPN_CONFIG}' --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --keepalive 10 60 --setenv VPN_PROV '${VPN_PROV}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_REMOTE '${VPN_REMOTE}' --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec'"
 
 if [[ "${VPN_PROV}" == "pia" ]]; then
 

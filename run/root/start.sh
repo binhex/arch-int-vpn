@@ -40,9 +40,6 @@ else
 
 	fi
 
-	# remove ping and ping-restart from ovpn file if present (using --keepalive)
-	sed -i '/^ping.*/d' "${VPN_CONFIG}"
-
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
 	sed -i '/^persist-tun/d' "${VPN_CONFIG}"
 
