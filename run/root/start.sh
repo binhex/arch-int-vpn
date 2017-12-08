@@ -78,6 +78,9 @@ else
 
 	fi
 
+	# assign any matching ping options in ovpn file to variable (used to decide whether to specify --keealive option in openvpn.sh)
+	vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
+
 	# create the tunnel device
 	[ -d /dev/net ] || mkdir -p /dev/net
 	[ -c /dev/net/"${VPN_DEVICE_TYPE}" ] || mknod /dev/net/"${VPN_DEVICE_TYPE}" c 10 200
