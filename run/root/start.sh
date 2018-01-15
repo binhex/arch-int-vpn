@@ -61,11 +61,14 @@ else
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
 	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
 
+	# remove route-method exe (windows support only)
+	sed -i '/^route-method exe/d' "${VPN_CONFIG}"
+
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
 
-	# get first matching 'remote' line in ovpn 
+	# get first matching 'remote' line in ovpn
 	vpn_remote=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^remote\s.*')
 
 	if [ -n "${vpn_remote}" ]; then
