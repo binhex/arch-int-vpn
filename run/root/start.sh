@@ -84,12 +84,8 @@ else
 	# assign any matching ping options in ovpn file to variable (used to decide whether to specify --keealive option in openvpn.sh)
 	vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
 
-	# forcibly set virtual network device to 'tun/tap' (this ensures its set to tun0/tap0)
+	# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
 	sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
-
-	# create the tunnel device
-	[ -d /dev/net ] || mkdir -p /dev/net
-	[ -c "/dev/net/${VPN_DEVICE_TYPE}" ] || mknod "/dev/net/${VPN_DEVICE_TYPE}" c 10 200
 
 	# get ip for local gateway (eth0)
 	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
