@@ -23,7 +23,7 @@ current_vpn_ip=""
 while ! check_valid_ip "${current_vpn_ip}"
 do
 	sleep 0.1
-	current_vpn_ip=$(ifconfig "${VPN_DEVICE_TYPE}0" 2>/dev/null | grep 'inet' | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
+	current_vpn_ip=$(ifconfig "${VPN_DEVICE_TYPE}" 2>/dev/null | grep 'inet' | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
 done
 
 if [[ "${DEBUG}" == "true" ]]; then
