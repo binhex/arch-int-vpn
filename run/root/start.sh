@@ -140,7 +140,7 @@ else
 	mkdir -p /dev/net
 	[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
 	chmod 600 /dev/net/tun
--
+
 	# check if we have iptable_mangle module available
 	check_mangle_available=$(lsmod | grep iptable_mangle)
 
