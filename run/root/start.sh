@@ -123,6 +123,42 @@ else
 
 	fi
 
+	# check if we have tun module available
+	check_tun_available=$(lsmod | grep tun)
+
+	# if tun module not available then try installing it
+	if [[ -z "${check_tun_available}" ]]; then
+		echo "[info] Attempting to load tun module..."
+		insmod /lib/modules/tun.ko
+		tun_module_exit_code=$?
+		if [[ $tun_module_exit_code != 0 ]]; then
+			echo "[crit] Unable to load tun module, cannot continue" ; exit 1
+		fi
+	fi
+
+	# create the tunnel device (unraid users do not require this step)
+	mkdir -p /dev/net
+	[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
+	chmod 600 /dev/net/tun
+-
+	# check if we have iptable_mangle module available
+	check_mangle_available=$(lsmod | grep iptable_mangle)
+
+	# if mangle module not available then try installing it
+	if [[ -z "${check_mangle_available}" ]]; then
+		echo "[info] Attempting to load iptable_mangle module..."
+		/sbin/modprobe iptable_mangle
+		mangle_module_exit_code=$?
+		if [[ $mangle_module_exit_code != 0 ]]; then
+			echo "[warn] Unable to load iptable_mangle module using modprobe, trying insmod..."
+			insmod /lib/modules/iptable_mangle.ko
+			mangle_module_exit_code=$?
+			if [[ $mangle_module_exit_code != 0 ]]; then
+				echo "[warn] Unable to load iptable_mangle module, you will not be able to connect to the applications Web UI or Privoxy outside of your LAN"
+			fi
+		fi
+	fi
+
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
 		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
