@@ -128,18 +128,28 @@ else
 
 	# if tun module not available then try installing it
 	if [[ -z "${check_tun_available}" ]]; then
-		echo "[info] Attempting to load tun module..."
-		insmod /lib/modules/tun.ko
+		echo "[info] Attempting to load tun kernel module..."
+		/sbin/modprobe tun
 		tun_module_exit_code=$?
 		if [[ $tun_module_exit_code != 0 ]]; then
-			echo "[crit] Unable to load tun module, cannot continue" ; exit 1
+			echo "[warn] Unable to load tun kernel module using modprobe, trying insmod..."
+			insmod /lib/modules/tun.ko
+			tun_module_exit_code=$?
+			if [[ $tun_module_exit_code != 0 ]]; then
+				echo "[warn] Unable to load tun kernel module, assuming its dynamically loaded"
+			fi
 		fi
 	fi
 
-	# create the tunnel device (unraid users do not require this step)
+	# create the tunnel device if not present (unraid users do not require this step)
 	mkdir -p /dev/net
 	[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
-	chmod 600 /dev/net/tun
+	tun_create_exit_code=$?
+	if [[ $tun_create_exit_code != 0 ]]; then
+		echo "[crit] Unable to create tun device, try adding docker container option '--device=/dev/net/tun'" ; exit 1
+	else
+		chmod 600 /dev/net/tun
+	fi
 
 	# check if we have iptable_mangle module available
 	check_mangle_available=$(lsmod | grep iptable_mangle)
@@ -155,6 +165,8 @@ else
 			mangle_module_exit_code=$?
 			if [[ $mangle_module_exit_code != 0 ]]; then
 				echo "[warn] Unable to load iptable_mangle module, you will not be able to connect to the applications Web UI or Privoxy outside of your LAN"
+				echo "[info] unRAID/Ubuntu users: Please attempt to load the module by executing the following on your host: '/sbin/modprobe iptable_mangle'"
+				echo "[info] Synology users: Please attempt to load the module by executing the following on your host: 'insmod /lib/modules/iptable_mangle.ko'"
 			fi
 		fi
 	fi
