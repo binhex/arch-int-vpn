@@ -37,7 +37,19 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		# create array of endpoints that support port forwarding (pia only)
 		pia_domain_suffix="privateinternetaccess.com"
-		pia_port_forward_enabled_endpoints_array=("ca-vancouver.${pia_domain_suffix} (CA Vancouver)" "ca-toronto.${pia_domain_suffix} (CA Toronto)" "ca.${pia_domain_suffix} (CA Montreal)" "nl.${pia_domain_suffix} (Netherlands)" "swiss.${pia_domain_suffix} (Switzerland)" "sweden.${pia_domain_suffix} (Sweden)" "france.${pia_domain_suffix} (France)" "ro.${pia_domain_suffix} (Romania)" "israel.${pia_domain_suffix} (Israel)")
+
+		pia_port_forward_enabled_endpoints_array=("ca-vancouver.${pia_domain_suffix} (CA Vancouver)" \
+		"ca-toronto.${pia_domain_suffix} (CA Toronto)" \
+		"ca.${pia_domain_suffix} (CA Montreal)" \
+		"czech.${pia_domain_suffix} (Czech Republic)" \
+		"nl.${pia_domain_suffix} (Netherlands)" \
+		"spain.${pia_domain_suffix} (Spain)" \
+		"swiss.${pia_domain_suffix} (Switzerland)" \
+		"sweden.${pia_domain_suffix} (Sweden)" \
+		"france.${pia_domain_suffix} (France)" \
+		"germany.${pia_domain_suffix} (Germany)" \
+		"ro.${pia_domain_suffix} (Romania)" \
+		"israel.${pia_domain_suffix} (Israel)")
 
 		if [[ ! " ${pia_port_forward_enabled_endpoints_array[@]} " =~ " ${VPN_REMOTE} " ]]; then
 
