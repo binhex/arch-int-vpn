@@ -109,7 +109,7 @@ else
 	done
 
 	# get answer for remote endpoint from ns, used later on in openvpn.sh to specify multiple --remote entries
-	remote_dns_answer=$(dig +short "${VPN_REMOTE}" | grep -E '^[0-9.]+$' | xargs)
+	remote_dns_answer=$(dig -4 +short "${VPN_REMOTE}" | grep -E '^[0-9.]+$' | xargs)
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[info] Remote VPN endpoint resolves to the following A record(s)..."
