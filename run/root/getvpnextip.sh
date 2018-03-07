@@ -31,7 +31,7 @@ while true; do
 		echo "[debug] Attempting to get external IP using Name Server '${pri_ns}'..."
 	fi
 
-	external_ip="$(dig -b ${vpn_ip} TXT +short o-o.myaddr.l.google.com @${pri_ns} 2> /dev/null | tr -d '"')"
+	external_ip="$(dig -b ${vpn_ip} -4 TXT +short o-o.myaddr.l.google.com @${pri_ns} 2> /dev/null | tr -d '"')"
 	check_valid_ip "${external_ip}"
 	return_code="$?"
 
@@ -42,7 +42,7 @@ while true; do
 			echo "[debug] Failed to get external IP using Name Server '${pri_ns}', trying '${sec_ns}'..."
 		fi
 
-		external_ip="$(dig -b ${vpn_ip} +short myip.opendns.com @${sec_ns} 2> /dev/null)"
+		external_ip="$(dig -b ${vpn_ip} -4 +short myip.opendns.com @${sec_ns} 2> /dev/null)"
 		check_valid_ip "${external_ip}"
 		return_code="$?"
 
