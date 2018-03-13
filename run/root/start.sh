@@ -68,19 +68,6 @@ else
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 	fi
 
-	# get first matching 'remote' line in ovpn
-	vpn_remote=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^remote\s.*')
-
-	if [ -n "${vpn_remote}" ]; then
-
-		# remove all remote lines as we cannot cope with multi remote lines
-		sed -i '/^remote\s.*/d' "${VPN_CONFIG}"
-
-		# write the single remote line back to the ovpn file on line 1
-		sed -i -e "1i${vpn_remote}" "${VPN_CONFIG}"
-
-	fi
-
 	# assign any matching ping options in ovpn file to variable (used to decide whether to specify --keealive option in openvpn.sh)
 	vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
 
