@@ -42,7 +42,6 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		"ca-toronto.${pia_domain_suffix} (CA Toronto)" \
 		"ca.${pia_domain_suffix} (CA Montreal)" \
 		"czech.${pia_domain_suffix} (Czech Republic)" \
-		"nl.${pia_domain_suffix} (Netherlands)" \
 		"spain.${pia_domain_suffix} (Spain)" \
 		"swiss.${pia_domain_suffix} (Switzerland)" \
 		"sweden.${pia_domain_suffix} (Sweden)" \
