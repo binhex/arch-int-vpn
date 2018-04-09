@@ -103,6 +103,24 @@ else
 		echo "${remote_dns_answer}"
 	fi
 
+	# if the vpn_remote is NOT an ip address then resolve it
+	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+
+		# get first ip from remote_dns_answer and write to the hosts file
+		# this is required as openvpn will use the remote entry in the ovpn file
+		# even if you specify the --remote options on the command line, and thus we
+		# must also be able to resolve the host name (assuming it is a name and not ip).
+		remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
+
+		# if not blank then write to hosts file
+		if [[ ! -z "${remote_dns_answer_first}" ]]; then
+			echo "${remote_dns_answer_first}    ${VPN_REMOTE}" >> /etc/hosts
+		else
+			echo "[crit] ${VPN_REMOTE} cannot be resolved, possible DNS issues" ; exit 1
+		fi
+
+	fi
+
 	# check if we have tun module available
 	check_tun_available=$(lsmod | grep tun)
 
