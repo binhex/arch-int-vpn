@@ -1,9 +1,18 @@
 #!/bin/bash
 
 # define name servers to connect to in order to get external ip address
+# if name servers dont respond then use web servers to get external ip address
 pri_ns="ns1.google.com"
 sec_ns="resolver1.opendns.com"
-retry_count=30
+pri_url="http://checkip.amazonaws.com"
+sec_url="http://whatismyip.akamai.com"
+ter_url="https://showextip.azurewebsites.net"
+
+# define retry and timeout periods
+retry_count=15
+sleep_period_secs=2s
+curl_connnect_timeout_secs=10
+curl_max_time_timeout_secs=30
 
 # remove previous run output file
 rm -f /home/nobody/vpn_external_ip.txt
@@ -42,43 +51,102 @@ while true; do
 			echo "[debug] Failed to get external IP using Name Server '${pri_ns}', trying '${sec_ns}'..."
 		fi
 
-		external_ip="$(dig -b ${vpn_ip} -4 +short myip.opendns.com @${sec_ns} 2> /dev/null)"
-		check_valid_ip "${external_ip}"
-		return_code="$?"
+	else
 
-		# if empty value returned, or ip not in correct format then try secondary ns
-		if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
+		echo "[info] Successfully retrieved external IP address ${external_ip}"
+		break
 
-			if [ "${retry_count}" -eq "0" ]; then
+	fi
 
-				external_ip="${vpn_ip}"
+	external_ip="$(dig -b ${vpn_ip} -4 +short myip.opendns.com @${sec_ns} 2> /dev/null)"
+	check_valid_ip "${external_ip}"
+	return_code="$?"
 
-				echo "[warn] Cannot determine external IP address, exausted retries setting to tunnel IP ${external_ip}"
-				break
+	# if empty value returned, or ip not in correct format then try secondary ns
+	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-			else
-
-				retry_count=$((retry_count-1))
-
-				if [[ "${DEBUG}" == "true" ]]; then
-					echo "[debug] Cannot determine external IP address, retrying..."
-				fi
-
-				sleep 1s
-
-			fi
-
-		else
-
-			echo "[info] Successfully retrieved external IP address ${external_ip}"
-			break
-
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Failed to get external IP using Name Server '${sec_ns}', trying '${pri_url}'..."
 		fi
 
 	else
 
 		echo "[info] Successfully retrieved external IP address ${external_ip}"
 		break
+
+	fi
+
+	external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${pri_url} 2> /dev/null)"
+	check_valid_ip "${external_ip}"
+	return_code="$?"
+
+	# if empty value returned, or ip not in correct format then try primary url
+	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Failed to get external IP using Web Server '${pri_url}', trying '${sec_url}'..."
+		fi
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${external_ip}"
+		break
+
+	fi
+
+	external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${sec_url} 2> /dev/null)"
+	check_valid_ip "${external_ip}"
+	return_code="$?"
+
+	# if empty value returned, or ip not in correct format then try secondary url
+	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Failed to get external IP using Web Server '${sec_url}', trying '${ter_ns}'..."
+		fi
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${external_ip}"
+		break
+
+	fi
+
+	external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${ter_url} 2> /dev/null | grep -P -o -m 1 '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
+	check_valid_ip "${external_ip}"
+	return_code="$?"
+
+	# if empty value returned, or ip not in correct format then try secondary url
+	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Failed to get external IP using Web Server '${ter_url}'"
+		fi
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${external_ip}"
+		break
+
+	fi
+
+	# if we still havent got the external ip address then sleep and then retry again
+	if [ "${retry_count}" -eq "0" ]; then
+
+		external_ip="${vpn_ip}"
+
+		echo "[warn] Cannot determine external IP address, exausted retries setting to tunnel IP '${external_ip}'"
+		break
+
+	else
+
+		retry_count=$((retry_count-1))
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Cannot determine external IP address, retrying..."
+		fi
+
+		sleep "${sleep_period_secs}"
 
 	fi
 
