@@ -135,7 +135,7 @@ while true; do
 
 		external_ip="${vpn_ip}"
 
-		echo "[warn] Cannot determine external IP address, exausted retries setting to tunnel IP '${external_ip}'"
+		echo "[warn] Cannot determine external IP address, exhausted retries setting to tunnel IP '${external_ip}'"
 		break
 
 	else
