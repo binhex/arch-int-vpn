@@ -8,9 +8,7 @@ pri_url="http://checkip.amazonaws.com"
 sec_url="http://whatismyip.akamai.com"
 ter_url="https://showextip.azurewebsites.net"
 
-# define retry and timeout periods
-retry_count=15
-sleep_period_secs=2s
+# define timeout periods
 curl_connnect_timeout_secs=10
 curl_max_time_timeout_secs=30
 
@@ -21,7 +19,7 @@ rm -f /home/nobody/vpn_external_ip.txt
 source /home/nobody/getvpnip.sh
 
 # function to check ip address is in correct format
-check_valid_ip() {
+function check_valid_ip() {
 
 	check_ip="$1"
 
@@ -34,7 +32,8 @@ check_valid_ip() {
 	return 0
 }
 
-while true; do
+# function to attempt to get external ip using ns or web
+function get_external_ip() {
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Attempting to get external IP using Name Server '${pri_ns}'..."
@@ -54,7 +53,8 @@ while true; do
 	else
 
 		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		break
+		eval "$1=${external_ip}"
+		return 0
 
 	fi
 
@@ -72,7 +72,8 @@ while true; do
 	else
 
 		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		break
+		eval "$1=${external_ip}"
+		return 0
 
 	fi
 
@@ -90,7 +91,8 @@ while true; do
 	else
 
 		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		break
+		eval "$1=${external_ip}"
+		return 0
 
 	fi
 
@@ -102,13 +104,14 @@ while true; do
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
 		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Failed to get external IP using Web Server '${sec_url}', trying '${ter_ns}'..."
+			echo "[debug] Failed to get external IP using Web Server '${sec_url}', trying '${ter_url}'..."
 		fi
 
 	else
 
 		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		break
+		eval "$1=${external_ip}"
+		return 0
 
 	fi
 
@@ -126,31 +129,21 @@ while true; do
 	else
 
 		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		break
+		eval "$1=${external_ip}"
+		return 0
 
 	fi
 
-	# if we still havent got the external ip address then sleep and then retry again
-	if [ "${retry_count}" -eq "0" ]; then
+	# if we still havent got the external ip address then set to tunnel ip and exit
+	echo "[warn] Cannot determine external IP address, exhausted retries setting to tunnel IP '${external_ip}'"
+	eval "$1=${vpn_ip}"
+	return 1
 
-		external_ip="${vpn_ip}"
+}
 
-		echo "[warn] Cannot determine external IP address, exhausted retries setting to tunnel IP '${external_ip}'"
-		break
-
-	else
-
-		retry_count=$((retry_count-1))
-
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Cannot determine external IP address, retrying..."
-		fi
-
-		sleep "${sleep_period_secs}"
-
-	fi
-
-done
+# save return value from function
+external_ip=""
+get_external_ip external_ip
 
 # write external ip address to text file, this is then read by the downloader script
 echo "${external_ip}" > /home/nobody/vpn_external_ip.txt
