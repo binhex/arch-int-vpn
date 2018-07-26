@@ -1,4 +1,4 @@
-FROM binhex/arch-base:2018072601
+FROM binhex/arch-base:2018072602
 MAINTAINER binhex
 
 # additional files
