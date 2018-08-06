@@ -46,7 +46,8 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		"swiss.${pia_domain_suffix} (Switzerland)" \
 		"sweden.${pia_domain_suffix} (Sweden)" \
 		"france.${pia_domain_suffix} (France)" \
-		"germany.${pia_domain_suffix} (Germany)" \
+		"de-berlin.${pia_domain_suffix} (Germany)" \
+		"de-frankfurt.${pia_domain_suffix} (Germany)" \
 		"ro.${pia_domain_suffix} (Romania)" \
 		"israel.${pia_domain_suffix} (Israel)")
 
