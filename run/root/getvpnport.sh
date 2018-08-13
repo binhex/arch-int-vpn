@@ -52,46 +52,39 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		"israel.${pia_domain_suffix} (Israel)")
 
 		if [[ ! " ${pia_port_forward_enabled_endpoints_array[@]} " =~ " ${VPN_REMOTE} " ]]; then
-
 			echo "[warn] PIA endpoint '${VPN_REMOTE}' doesn't support port forwarding, DL/UL speeds will be slow"
 			echo "[info] Please consider switching to an endpoint that does support port forwarding, shown below:-"
 			printf '[info] %s\n' "${pia_port_forward_enabled_endpoints_array[@]}"
+		fi
 
-			# create empty incoming port file (read by downloader script)
-			touch /home/nobody/vpn_incoming_port.txt
+		# get an assigned incoming port from pia's api using curl
+		/root/curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
+		exit_code=$?
+
+		if [[ "${exit_code}" != 0 ]]; then
+
+			echo "[warn] PIA API currently down, terminating OpenVPN process to force retry for incoming port..."
+			kill -2 $(cat /root/openvpn.pid)
+			exit 1
 
 		else
 
-			# get an assigned incoming port from pia's api using curl
-			/root/curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
-			exit_code=$?
+			VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
 
-			if [[ "${exit_code}" != 0 ]]; then
+			if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
-				echo "[warn] PIA API currently down, terminating OpenVPN process to force retry for incoming port..."
-				kill -2 $(cat /root/openvpn.pid)
-				exit 1
+				if [[ "${DEBUG}" == "true" ]]; then
+					echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
+				fi
+
+				# write port number to text file (read by downloader script)
+				echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
 
 			else
 
-				VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
-
-				if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
-
-					if [[ "${DEBUG}" == "true" ]]; then
-						echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
-					fi
-
-					# write port number to text file (read by downloader script)
-					echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
-
-				else
-
-					echo "[warn] PIA incoming port malformed, terminating OpenVPN process to force retry for incoming port..."
-					kill -2 $(cat /root/openvpn.pid)
-					exit 1
-
-				fi
+				echo "[warn] PIA incoming port malformed, terminating OpenVPN process to force retry for incoming port..."
+				kill -2 $(cat /root/openvpn.pid)
+				exit 1
 
 			fi
 
