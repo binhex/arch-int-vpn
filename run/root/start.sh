@@ -61,8 +61,10 @@ else
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
 	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
 
-	# remove route-method exe (windows support only)
+	# remove windows specific openvpn options
 	sed -i '/^route-method exe/d' "${VPN_CONFIG}"
+	sed -i '/^service\s.*/d' "${VPN_CONFIG}"
+	sed -i '/^block-outside-dns/d' "${VPN_CONFIG}"
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
