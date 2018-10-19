@@ -99,7 +99,8 @@ else
 	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
 
 		# get answer for remote endpoint from ns, used later on in openvpn.sh to specify multiple --remote entries
-		remote_dns_answer=$(dig -4 +short "${VPN_REMOTE}" | grep -E '^[0-9.]+$' | xargs)
+		# note -v 'SERVER' is to prevent name server ip being matched from stdout
+		remote_dns_answer=$(drill -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
 		# check answer is not blank, if it is blank assume bad ns
 		if [[ ! -z "${remote_dns_answer}" ]]; then

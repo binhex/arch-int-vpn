@@ -39,7 +39,8 @@ function get_external_ip() {
 		echo "[debug] Attempting to get external IP using Name Server '${pri_ns}'..."
 	fi
 
-	external_ip="$(dig -b ${vpn_ip} -4 TXT +short o-o.myaddr.l.google.com @${pri_ns} 2> /dev/null | tr -d '"')"
+	# note -v 'SERVER' is to prevent name server ip being matched from stdout
+	external_ip="$(drill -I ${vpn_ip} -4 TXT o-o.myaddr.l.google.com @${pri_ns} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
 	check_valid_ip "${external_ip}"
 	return_code="$?"
 
@@ -58,7 +59,8 @@ function get_external_ip() {
 
 	fi
 
-	external_ip="$(dig -b ${vpn_ip} -4 +short myip.opendns.com @${sec_ns} 2> /dev/null)"
+	# note -v 'SERVER' is to prevent name server ip being matched from stdout
+	external_ip="$(drill -I ${vpn_ip} -4 myip.opendns.com @${sec_ns} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
 	check_valid_ip "${external_ip}"
 	return_code="$?"
 
