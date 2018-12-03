@@ -38,8 +38,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		# create array of endpoints that support port forwarding (pia only)
 		pia_domain_suffix="privateinternetaccess.com"
 
-		pia_port_forward_enabled_endpoints_array=\
-		("ca-vancouver.${pia_domain_suffix} (CA Vancouver)" \
+		pia_port_forward_enabled_endpoints_array=("ca-vancouver.${pia_domain_suffix} (CA Vancouver)" \
 		"ca-toronto.${pia_domain_suffix} (CA Toronto)" \
 		"ca-montreal.${pia_domain_suffix} (CA Montreal)" \
 		"czech.${pia_domain_suffix} (Czech Republic)" \
