@@ -44,7 +44,8 @@ fi
 if [[ ! -z "${VPN_OPTIONS}" ]]; then
 
 	# add additional flags to openvpn cli
-	openvpn_cli="${openvpn_cli} '${VPN_OPTIONS}'"
+	# note do not single/double quote the variable VPN_OPTIONS
+	openvpn_cli="${openvpn_cli} ${VPN_OPTIONS}"
 
 fi
 
