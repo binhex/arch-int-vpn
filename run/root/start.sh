@@ -107,11 +107,6 @@ else
 		# check answer is not blank, if it is blank assume bad ns
 		if [[ ! -z "${remote_dns_answer}" ]]; then
 
-			if [[ "${DEBUG}" == "true" ]]; then
-				echo "[info] Remote VPN endpoint resolves to the following A record(s)..."
-				echo "${remote_dns_answer}"
-			fi
-
 			# get first ip from remote_dns_answer and write to the hosts file
 			# this is required as openvpn will use the remote entry in the ovpn file
 			# even if you specify the --remote options on the command line, and thus we
@@ -120,7 +115,7 @@ else
 
 			# if not blank then write to hosts file
 			if [[ ! -z "${remote_dns_answer_first}" ]]; then
-				echo "${remote_dns_answer_first}    ${VPN_REMOTE}" >> /etc/hosts
+				echo "${remote_dns_answer_first}	${VPN_REMOTE}" >> /etc/hosts
 			fi
 
 		else
