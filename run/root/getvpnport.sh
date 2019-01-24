@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# statically assigned url for pia api (taken from pia script)
-pia_api_host="209.222.18.222"
-pia_api_port="2000"
-pia_api_url="http://${pia_api_host}:${pia_api_port}"
-
 # remove previous run output file
 rm -f /home/nobody/vpn_incoming_port.txt
 
@@ -17,7 +12,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 	if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
 
 		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Port forwarding disabled, skipping incoming port detection"
+			echo "[debug] Port forwarding is not enabled"
 		fi
 
 		# create empty incoming port file (read by downloader script)
@@ -26,50 +21,89 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 	else
 
 		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[info] Strict port forwarding enabled, attempting to assign an incoming port..."
+			echo "[debug] Port forwarding is enabled"
 		fi
 
+		####
+		# check endpoint is port forward enabled
+		####
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Checking endpoint '${VPN_REMOTE}' is port forward enabled..."
+		fi
+
+		# pia api url for endpoint status (port forwarding enabled true|false)
+		pia_vpninfo_api="https://www.privateinternetaccess.com/vpninfo/servers?version=82"
+
+		# jq (json query tool) query to select port forward and filter based only on port forward being enabled (true)
+		jq_query_filter_portforward='.[] | select(.port_forward|tostring | contains("true"))'
+
 		# remove temp file from previous run
-		rm -f /tmp/VPN_INCOMING_PORT
+		rm -f "/tmp/pia_vpninfo_api_result"
+
+		# run curly to grab api result
+		/root/curly.sh -rc 12 -rw 10 -of "/tmp/pia_vpninfo_api_result" -url "${pia_vpninfo_api}"
+
+		if [[ "${?}" != 0 ]]; then
+			echo "[warn] PIA VPN info API currently down, skipping endoint port forwward check"
+		fi
+
+		# run jq query with the filter
+		jq_query_result=$(cat "/tmp/pia_vpninfo_api_result" | jq -r "${jq_query_filter_portforward}" 2> /dev/null)
+
+		# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
+		jq_query_details=$(echo "${jq_query_result}" | jq -r '.dns' | xargs)
+
+		# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
+		# grep -w = exact match (whole word), grep -q = quiet mode (no output)
+		echo "${jq_query_details}" | grep -qw "${VPN_REMOTE}"
+		
+		if [[ "${?}" != 0 ]]; then
+
+			echo "[warn] PIA endpoint '${VPN_REMOTE}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
+			echo "[info] Please consider switching to one of the endpoints below that does support port forwarding:-"
+
+			# convert to list with separator being space
+			IFS=' ' read -ra jq_query_details_list <<< "${jq_query_details}"
+
+			# loop over list of port forward enabled endpooints and echo out to console
+			for i in "${jq_query_details_list[@]}"; do
+					echo "[info] ${i}"
+			done
+
+		fi
+
+		####
+		# get dynamically assigned port number
+		####
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Attempting to get dynamically assigned port..."
+		fi
+
+		# pia api url for getting dynamically assigned port number
+		pia_vpnport_api_host="209.222.18.222"
+		pia_vpnport_api_port="2000"
+		pia_vpnport_api="http://${pia_vpnport_api_host}:${pia_vpnport_api_port}"
+
+		# remove temp file from previous run
+		rm -f "/tmp/pia_vpnport_api_result"
 
 		# create pia client id (randomly generated)
 		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
-		# create array of endpoints that support port forwarding (pia only)
-		pia_domain_suffix="privateinternetaccess.com"
+		# run curly to grab api result
+		/root/curly.sh -rc 12 -rw 10 -of "/tmp/pia_vpnport_api_result" -url "${pia_vpnport_api}/?client_id=${client_id}"
 
-		pia_port_forward_enabled_endpoints_array=("ca-vancouver.${pia_domain_suffix} (CA Vancouver)" \
-		"ca-toronto.${pia_domain_suffix} (CA Toronto)" \
-		"ca-montreal.${pia_domain_suffix} (CA Montreal)" \
-		"czech.${pia_domain_suffix} (Czech Republic)" \
-		"spain.${pia_domain_suffix} (Spain)" \
-		"swiss.${pia_domain_suffix} (Switzerland)" \
-		"sweden.${pia_domain_suffix} (Sweden)" \
-		"france.${pia_domain_suffix} (France)" \
-		"de-berlin.${pia_domain_suffix} (Germany)" \
-		"de-frankfurt.${pia_domain_suffix} (Germany)" \
-		"ro.${pia_domain_suffix} (Romania)" \
-		"israel.${pia_domain_suffix} (Israel)")
+		if [[ "${?}" != 0 ]]; then
 
-		if [[ ! " ${pia_port_forward_enabled_endpoints_array[@]} " =~ " ${VPN_REMOTE} " ]]; then
-			echo "[warn] PIA endpoint '${VPN_REMOTE}' doesn't support port forwarding, DL/UL speeds will be slow"
-			echo "[info] Please consider switching to an endpoint that does support port forwarding, shown below:-"
-			printf '[info] %s\n' "${pia_port_forward_enabled_endpoints_array[@]}"
-		fi
-
-		# get an assigned incoming port from pia's api using curl
-		/root/curly.sh -rc 12 -rw 10 -of /tmp/VPN_INCOMING_PORT -url "${pia_api_url}/?client_id=${client_id}"
-		exit_code=$?
-
-		if [[ "${exit_code}" != 0 ]]; then
-
-			echo "[warn] PIA API currently down, terminating OpenVPN process to force retry for incoming port..."
+			echo "[warn] PIA VPN port assignment API currently down, terminating OpenVPN process to force retry for incoming port..."
 			kill -2 $(cat /root/openvpn.pid)
 			exit 1
 
 		else
 
-			VPN_INCOMING_PORT=$(cat /tmp/VPN_INCOMING_PORT | jq -r '.port')
+			VPN_INCOMING_PORT=$(cat /tmp/pia_vpnport_api_result | jq -r '.port')
 
 			if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
@@ -82,7 +116,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 			else
 
-				echo "[warn] PIA incoming port malformed, terminating OpenVPN process to force retry for incoming port..."
+				echo "[warn] PIA VPN assigned port is malformed, terminating OpenVPN process to force retry for incoming port..."
 				kill -2 $(cat /root/openvpn.pid)
 				exit 1
 
@@ -98,7 +132,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 else
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] VPN provider ${VPN_PROV} is != pia, skipping incoming port detection"
+		echo "[debug] VPN provider ${VPN_PROV} is != pia, skipping incoming port assignment"
 	fi
 
 fi
