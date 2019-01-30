@@ -9,7 +9,7 @@ OpenVPN is an open-source software application that implements virtual private n
 
 **Build notes**
 
-Latest stable release from Arch Linux repo.
+This is an intermediate Docker image which is used as a base image for other Docker images which require the OpenVPN client.
 
 **Usage**
 
