@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # define common command lne parameters for openvpn
-openvpn_cli="/usr/bin/openvpn --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --setenv VPN_PROV '${VPN_PROV}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_REMOTE '${VPN_REMOTE}' --script-security 2 --up /root/openvpnup.sh --up-delay --up-restart --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec'"
+openvpn_cli="/usr/bin/openvpn --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --setenv VPN_PROV '${VPN_PROV}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_REMOTE '${VPN_REMOTE}' --script-security 2 --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec'"
 
 # check answer is not blank, generated in start.sh, if it is blank assume bad ns or ${VPN_REMOTE} is an ip address
 if [[ ! -z "${remote_dns_answer}" ]]; then
@@ -17,6 +17,13 @@ if [[ ! -z "${remote_dns_answer}" ]]; then
 	# randomize the --remote option that openvpn will use to connect. this should help
 	# prevent getting stuck on a particular endpoint should it become unstable/unavailable
 	openvpn_cli="${openvpn_cli} --remote-random"
+
+fi
+
+if [[ "${RUN_UP_SCRIPT}" == "yes" ]]; then
+
+	# run additional vpn up scripts to assign incoming port and identify external ip address
+ 	openvpn_cli="${openvpn_cli} --up /root/openvpnup.sh --up-delay --up-restart"
 
 fi
 
