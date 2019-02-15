@@ -19,7 +19,7 @@ mv /tmp/scripts-master/shell/arch/docker/*.sh /root/
 ####
 
 # define pacman packages
-pacman_packages="kmod openvpn privoxy bind-tools"
+pacman_packages="kmod openvpn privoxy bind-tools gnu-netcat ipcalc"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
