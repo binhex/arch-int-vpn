@@ -151,4 +151,4 @@ get_external_ip external_ip
 echo "${external_ip}" > /home/nobody/vpn_external_ip.txt
 
 # chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-chmod +r /home/nobody/vpn_external_ip.txt
+chmod a+rwx /home/nobody/vpn_external_ip.txt
