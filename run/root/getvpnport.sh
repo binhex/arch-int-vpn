@@ -42,7 +42,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		rm -f "/tmp/pia_vpninfo_api_result"
 
 		# run curly to grab api result
-		/root/curly.sh -rc 12 -rw 10 -of "/tmp/pia_vpninfo_api_result" -url "${pia_vpninfo_api}"
+		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/pia_vpninfo_api_result" -url "${pia_vpninfo_api}"
 
 		if [[ "${?}" != 0 ]]; then
 
@@ -105,7 +105,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
 		# run curly to grab api result
-		/root/curly.sh -rc 12 -rw 10 -of "/tmp/pia_vpnport_api_result" -url "${pia_vpnport_api}/?client_id=${client_id}"
+		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/pia_vpnport_api_result" -url "${pia_vpnport_api}/?client_id=${client_id}"
 
 		if [[ "${?}" != 0 ]]; then
 
