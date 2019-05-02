@@ -6,25 +6,75 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 		source /home/nobody/getvpnip.sh
 	fi
 
-	echo "[info] Configuring Privoxy..."
 	mkdir -p /config/privoxy
 
 	if [[ ! -f "/config/privoxy/config" ]]; then
+
+		echo "[info] Configuring Privoxy..."
 		cp -R /etc/privoxy/ /config/
+
+		sed -i -e "s~confdir /etc/privoxy~confdir /config/privoxy~g" /config/privoxy/config
+		sed -i -e "s~logdir /var/log/privoxy~logdir /config/privoxy~g" /config/privoxy/config
+		sed -i -e "s~listen-address.*~listen-address :8118~g" /config/privoxy/config
+
 	fi
 
-	LAN_IP=$(hostname -i)
+	if [[ "${privoxy_running}" == "false" ]]; then
 
-	sed -i -e "s~confdir /etc/privoxy~confdir /config/privoxy~g" /config/privoxy/config
-	sed -i -e "s~logdir /var/log/privoxy~logdir /config/privoxy~g" /config/privoxy/config
-	sed -i -e "s~listen-address.*~listen-address ${LAN_IP}:8118~g" /config/privoxy/config
+		echo "[info] Attempting to start Privoxy..."
 
-	echo "[info] All checks complete, starting Privoxy..."
+		# run Privoxy (daemonized, non-blocking)
+		/usr/bin/privoxy /config/privoxy/config
 
-	/usr/bin/privoxy --no-daemon /config/privoxy/config
+		# make sure process privoxy DOES exist
+		retry_count=30
+		while true; do
+
+			if ! pgrep -x "privoxy" > /dev/null; then
+
+				retry_count=$((retry_count-1))
+				if [ "${retry_count}" -eq "0" ]; then
+
+					echo "[warn] Wait for Privoxy process to start aborted, too many retries"
+					echo "[warn] Showing output from command before exit..."
+					timeout 10 /usr/bin/privoxy /config/privoxy/config ; exit 1
+
+				else
+
+					if [[ "${DEBUG}" == "true" ]]; then
+						echo "[debug] Waiting for Privoxy process to start..."
+					fi
+
+					sleep 1s
+
+				fi
+
+			else
+
+				echo "[info] Privoxy process started"
+				break
+
+			fi
+
+		done
+
+		echo "[info] Waiting for Privoxy process to start listening on port 8118..."
+
+		while [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".8118\"") == "" ]]; do
+			sleep 0.1
+		done
+
+		echo "[info] Privoxy process listening on port 8118"
+
+	fi
 
 else
 
-	echo "[info] Privoxy set to disabled"
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[info] Privoxy set to disabled"
+	fi
 
 fi
+
+# set privoxy ip to current vpn ip (used when checking for changes on next run)
+privoxy_ip="${vpn_ip}"
