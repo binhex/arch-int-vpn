@@ -136,9 +136,9 @@ function get_external_ip() {
 
 	fi
 
-	# if we still havent got the external ip address then set to tunnel ip and exit
-	echo "[warn] Cannot determine external IP address, exhausted retries setting to tunnel IP '${vpn_ip}'"
-	eval "$1=${vpn_ip}"
+	# if we still havent got the external ip address then set to loopback and exit
+	echo "[warn] Cannot determine external IP address, exhausted retries setting to lo '127.0.0.1'"
+	eval "$1=127.0.0.1"
 	return 1
 
 }
