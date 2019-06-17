@@ -3,7 +3,13 @@
 if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 
 	if [[ "${VPN_ENABLED}" == "yes" ]]; then
+
+		# run script to check iptables chain policy is in place (will block until configured)
+		source /home/nobody/checkiptables.sh
+
+		# run script to check ip is valid for tunnel device (will block until valid)
 		source /home/nobody/getvpnip.sh
+
 	fi
 
 	mkdir -p /config/privoxy
