@@ -11,6 +11,10 @@ check_valid_ip() {
 	# check that each octect is less than or equal to 255
 	echo "${local_vpn_ip}" | awk -F'.' '$1 <=255 && $2 <= 255 && $3 <=255 && $4 <= 255 {print "Y" } ' | grep -q Y || return 1
 
+	# check ip is not loopback or link local
+	echo "${local_vpn_ip}" | grep '127.0.0.1' && return 1
+	echo "${local_vpn_ip}" | egrep -qE '169\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' && return 1
+
 	return 0
 }
 
