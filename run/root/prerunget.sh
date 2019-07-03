@@ -10,7 +10,8 @@ source /home/nobody/getvpnip.sh
 source /root/getvpnport.sh
 
 # blocking script, will wait for names to resolve (required for /root/getvpnextip.sh)
-source /root/checkdns.sh
+# name to be resolved is first argument
+source /root/checkdns.sh "www.google.com"
 
 # blocking script, will wait for vpn external ip address to be retrieved and write value out (via ns or web lookup)
 # writes value to file '/home/nobody/vpn_external_ip.txt'
