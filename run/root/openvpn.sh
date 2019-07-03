@@ -70,9 +70,6 @@ echo "[info] Starting OpenVPN..."
 eval "${openvpn_cli}"
 echo "[info] OpenVPN started"
 
-# run script to check ip is valid for tunnel device (will block until valid)
-source /home/nobody/getvpnip.sh
-
 # set sleep period for recheck (in secs)
 sleep_period="30"
 

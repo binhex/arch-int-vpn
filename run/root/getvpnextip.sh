@@ -15,9 +15,6 @@ curl_max_time_timeout_secs=30
 # remove previous run output file
 rm -f /home/nobody/vpn_external_ip.txt
 
-# wait for vpn tunnel to come up before proceeding
-source /home/nobody/getvpnip.sh
-
 # function to check ip address is in correct format
 function check_valid_ip() {
 

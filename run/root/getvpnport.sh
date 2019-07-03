@@ -3,9 +3,6 @@
 # remove previous run output file
 rm -f /home/nobody/vpn_incoming_port.txt
 
-# wait for vpn tunnel to come up before proceeding
-source /home/nobody/getvpnip.sh
-
 # check we are provider pia (note this env var is passed through to up script via openvpn --sentenv option)
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
