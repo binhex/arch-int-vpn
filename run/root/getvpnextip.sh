@@ -32,9 +32,7 @@ function check_valid_ip() {
 # function to attempt to get external ip using ns or web
 function get_external_ip() {
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Attempting to get external IP using Name Server '${pri_ns}'..."
-	fi
+	echo "[info] Attempting to get external IP using Name Server '${pri_ns}'..."
 
 	# note -v 'SERVER' is to prevent name server ip being matched from stdout
 	external_ip="$(drill -I ${vpn_ip} -4 TXT o-o.myaddr.l.google.com @${pri_ns} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
@@ -44,9 +42,7 @@ function get_external_ip() {
 	# if empty value returned, or ip not in correct format then try secondary ns
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Failed to get external IP using Name Server '${pri_ns}', trying '${sec_ns}'..."
-		fi
+		echo "[warn] Failed to get external IP using Name Server '${pri_ns}', trying '${sec_ns}'..."
 
 	else
 
@@ -64,9 +60,7 @@ function get_external_ip() {
 	# if empty value returned, or ip not in correct format then try secondary ns
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Failed to get external IP using Name Server '${sec_ns}', trying '${pri_url}'..."
-		fi
+		echo "[warn] Failed to get external IP using Name Server '${sec_ns}', trying '${pri_url}'..."
 
 	else
 
@@ -83,9 +77,7 @@ function get_external_ip() {
 	# if empty value returned, or ip not in correct format then try primary url
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Failed to get external IP using Web Server '${pri_url}', trying '${sec_url}'..."
-		fi
+		echo "[warn] Failed to get external IP using Web Server '${pri_url}', trying '${sec_url}'..."
 
 	else
 
@@ -102,9 +94,7 @@ function get_external_ip() {
 	# if empty value returned, or ip not in correct format then try secondary url
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Failed to get external IP using Web Server '${sec_url}', trying '${ter_url}'..."
-		fi
+		echo "[warn] Failed to get external IP using Web Server '${sec_url}', trying '${ter_url}'..."
 
 	else
 
@@ -121,9 +111,7 @@ function get_external_ip() {
 	# if empty value returned, or ip not in correct format then try secondary url
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Failed to get external IP using Web Server '${ter_url}'"
-		fi
+		echo "[warn] Failed to get external IP using Web Server '${ter_url}'"
 
 	else
 
@@ -133,8 +121,11 @@ function get_external_ip() {
 
 	fi
 
-	# if we still havent got the external ip address then set to loopback and exit
-	echo "[warn] Cannot determine external IP address, exhausted retries setting to lo '127.0.0.1'"
+	# if we still havent got the external ip address then perform tests and then set to loopback and exit
+	echo "[warn] Cannot determine external IP address, performing tests before setting to lo '127.0.0.1'..."
+	echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
+	echo "[info] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -I ${vpn_ip} -4 "${VPN_REMOTE}"
+	echo "[info] Show contents of hosts file" ; cat /etc/hosts
 	eval "$1=127.0.0.1"
 	return 1
 
