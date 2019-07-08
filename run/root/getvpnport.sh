@@ -32,11 +32,8 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		# jq (json query tool) query to select port forward and filter based only on port forward being enabled (true)
 		jq_query_filter_portforward='.[] | select(.port_forward|tostring | contains("true"))'
 
-		# remove temp file from previous run
-		rm -f "/tmp/pia_vpninfo_api_result"
-
 		# run curly to grab api result
-		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/pia_vpninfo_api_result" -url "${pia_vpninfo_api}"
+		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piasupportportforwardapi" -url "${pia_vpninfo_api}"
 
 		if [[ "${?}" != 0 ]]; then
 
@@ -45,7 +42,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		else
 
 			# run jq query with the filter
-			jq_query_result=$(cat "/tmp/pia_vpninfo_api_result" | jq -r "${jq_query_filter_portforward}" 2> /dev/null)
+			jq_query_result=$(cat "/tmp/piasupportportforwardapi" | jq -r "${jq_query_filter_portforward}" 2> /dev/null)
 
 			# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
 			jq_query_details=$(echo "${jq_query_result}" | jq -r '.dns' | xargs)
@@ -92,14 +89,11 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		pia_vpnport_api_port="2000"
 		pia_vpnport_api="http://${pia_vpnport_api_host}:${pia_vpnport_api_port}"
 
-		# remove temp file from previous run
-		rm -f "/tmp/pia_vpnport_api_result"
-
 		# create pia client id (randomly generated)
 		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
 		# run curly to grab api result
-		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/pia_vpnport_api_result" -url "${pia_vpnport_api}/?client_id=${client_id}"
+		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piaportassignapi" -url "${pia_vpnport_api}/?client_id=${client_id}"
 
 		if [[ "${?}" != 0 ]]; then
 
@@ -109,7 +103,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		else
 
-			VPN_INCOMING_PORT=$(cat /tmp/pia_vpnport_api_result | jq -r '.port')
+			VPN_INCOMING_PORT=$(cat /tmp/piaportassignapi | jq -r '.port')
 
 			if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
