@@ -2,7 +2,7 @@
 
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
-	vpn_port="/home/nobody/vpn_incoming_port.txt"
+	vpn_port="/tmp/getvpnport"
 
 	if [ ! -f "${vpn_port}" ]; then
 		if [[ "${DEBUG}" == "true" ]]; then

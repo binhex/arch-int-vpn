@@ -12,9 +12,6 @@ ter_url="https://showextip.azurewebsites.net"
 curl_connnect_timeout_secs=10
 curl_max_time_timeout_secs=30
 
-# remove previous run output file
-rm -f /home/nobody/vpn_external_ip.txt
-
 # function to check ip address is in correct format
 function check_valid_ip() {
 
@@ -136,7 +133,7 @@ external_ip=""
 get_external_ip external_ip
 
 # write external ip address to text file, this is then read by the downloader script
-echo "${external_ip}" > /home/nobody/vpn_external_ip.txt
+echo "${external_ip}" > /tmp/getvpnextip
 
 # chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-chmod +r /home/nobody/vpn_external_ip.txt
+chmod +r /tmp/getvpnextip

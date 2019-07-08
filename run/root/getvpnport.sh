@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# remove previous run output file
-rm -f /home/nobody/vpn_incoming_port.txt
-
 # check we are provider pia (note this env var is passed through to up script via openvpn --sentenv option)
 if [[ "${VPN_PROV}" == "pia" ]]; then
 
@@ -13,7 +10,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		fi
 
 		# create empty incoming port file (read by downloader script)
-		touch /home/nobody/vpn_incoming_port.txt
+		touch /tmp/getvpnport
 
 	else
 
@@ -121,7 +118,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 				fi
 
 				# write port number to text file (read by downloader script)
-				echo "${VPN_INCOMING_PORT}" > /home/nobody/vpn_incoming_port.txt
+				echo "${VPN_INCOMING_PORT}" > /tmp/getvpnport
 
 			else
 
@@ -134,7 +131,7 @@ if [[ "${VPN_PROV}" == "pia" ]]; then
 		fi
 
 		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-		chmod +r /home/nobody/vpn_incoming_port.txt
+		chmod +r /tmp/getvpnport
 
 	fi
 
