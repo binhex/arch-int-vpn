@@ -1,6 +1,7 @@
 #!/bin/bash
 
-if [[ "${VPN_PROV}" == "pia" ]]; then
+# check that app requires port forwarding and vpn provider is pia
+if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] && [[ "${VPN_PROV}" == "pia" ]]; then
 
 	vpn_port="/tmp/getvpnport"
 

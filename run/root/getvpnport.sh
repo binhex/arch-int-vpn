@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# check we are provider pia (note this env var is passed through to up script via openvpn --sentenv option)
-if [[ "${VPN_PROV}" == "pia" ]]; then
+# check that app requires port forwarding and vpn provider is pia (note this env var is passed through to up script via openvpn --sentenv option)
+if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] && [[ "${VPN_PROV}" == "pia" ]]; then
 
 	if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
 

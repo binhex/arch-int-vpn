@@ -128,12 +128,17 @@ function get_external_ip() {
 
 }
 
-# save return value from function
-external_ip=""
-get_external_ip external_ip
+# check that app requires external ip (note this env var is passed through to up script via openvpn --sentenv option)
+if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; then
 
-# write external ip address to text file, this is then read by the downloader script
-echo "${external_ip}" > /tmp/getvpnextip
+	# save return value from function
+	external_ip=""
+	get_external_ip external_ip
 
-# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-chmod +r /tmp/getvpnextip
+	# write external ip address to text file, this is then read by the downloader script
+	echo "${external_ip}" > /tmp/getvpnextip
+
+	# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+	chmod +r /tmp/getvpnextip
+
+fi
