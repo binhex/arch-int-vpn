@@ -25,13 +25,16 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 		else
 
-			if [[ "${DEBUG}" == "true" ]]; then
-				echo "[debug] Having issues resolving name '${1}', sleeping before retry..."
-				sleep 5s
-			fi
+			echo "[debug] Having issues resolving name '${1}', sleeping before retry..."
+			sleep 5s
 
 		fi
 
 	done
 
 fi
+
+# write out resolved ip to file, this is then checked in /home/nobody/checkdns.sh to prevent 
+# application from starting until dns resolution is working
+echo "${remote_dns_answer}" > /tmp/checkdns
+chmod +r /tmp/checkdns

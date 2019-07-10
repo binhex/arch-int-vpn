@@ -2,6 +2,10 @@
 
 # script to call multiple scripts in series to read in values written by script /root/prerunget.sh
 
+if [[ "${DEBUG}" == "true" ]]; then
+	echo "[debug] Running precheck scripts to ensure everything is in place before we run the application..."
+fi
+
 # blocking script, will wait for valid ip address assigned to tun0/tap0
 source /home/nobody/getvpnip.sh
 

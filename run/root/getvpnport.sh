@@ -5,26 +5,20 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 	if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Port forwarding is not enabled"
-		fi
+		echo "[info] Port forwarding is not enabled"
 
 		# create empty incoming port file (read by downloader script)
 		touch /tmp/getvpnport
 
 	else
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Port forwarding is enabled"
-		fi
+		echo "[info] Port forwarding is enabled"
 
 		####
 		# check endpoint is port forward enabled
 		####
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Checking endpoint '${VPN_REMOTE}' is port forward enabled..."
-		fi
+		echo "[info] Checking endpoint '${VPN_REMOTE}' is port forward enabled..."
 
 		# pia api url for endpoint status (port forwarding enabled true|false)
 		pia_vpninfo_api="https://www.privateinternetaccess.com/vpninfo/servers?version=82"
@@ -37,7 +31,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 		if [[ "${?}" != 0 ]]; then
 
-			echo "[warn] PIA VPN info API currently down, skipping endoint port forwward check"
+			echo "[warn] PIA VPN info API currently down, skipping endpoint port forward check"
 
 		else
 
@@ -58,9 +52,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 			else
 
-				if [[ "${DEBUG}" == "true" ]]; then
-					echo "[debug] PIA endpoint '${VPN_REMOTE}' is in the list of endpoints that support port forwarding"
-				fi
+				echo "[info] PIA endpoint '${VPN_REMOTE}' is in the list of endpoints that support port forwarding"
 
 			fi
 
@@ -80,9 +72,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		# get dynamically assigned port number
 		####
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Attempting to get dynamically assigned port..."
-		fi
+		echo "[info] Attempting to get dynamically assigned port..."
 
 		# pia api url for getting dynamically assigned port number
 		pia_vpnport_api_host="209.222.18.222"
@@ -107,9 +97,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 			if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
 
-				if [[ "${DEBUG}" == "true" ]]; then
-					echo "[debug] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
-				fi
+				echo "[info] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
 
 				# write port number to text file (read by downloader script)
 				echo "${VPN_INCOMING_PORT}" > /tmp/getvpnport
@@ -131,8 +119,6 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 else
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] VPN provider ${VPN_PROV} is != pia, skipping incoming port assignment"
-	fi
+	echo "[info] Application does not require port forwarding or VPN provider is != pia, skipping incoming port assignment"
 
 fi

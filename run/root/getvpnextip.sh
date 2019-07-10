@@ -141,4 +141,8 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; t
 	# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
 	chmod +r /tmp/getvpnextip
 
+else
+
+	echo "[info] Application does not require external IP address, skipping external IP address detection"
+
 fi
