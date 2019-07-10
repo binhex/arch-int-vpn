@@ -5,14 +5,11 @@
 # blocking script, will wait for valid ip address assigned to tun0/tap0
 source /home/nobody/getvpnip.sh
 
-# blocking script, will wait for valid vpn incoming port and write value out (if provider is pia)
-# writes value to file '/home/nobody/vpn_incoming_port.txt'
+# blocking script, will wait for vpn incoming port to be assigned (port written to file /tmp/getvpnport)
 source /root/getvpnport.sh
 
-# blocking script, will wait for names to resolve (required for /root/getvpnextip.sh)
-# name to be resolved is first argument
+# blocking script, will wait for name resolution to be operational (ip address from resolved host written to file /tmp/checkdns)
 source /root/checkdns.sh "www.google.com"
 
-# blocking script, will wait for vpn external ip address to be retrieved and write value out (via ns or web lookup)
-# writes value to file '/home/nobody/vpn_external_ip.txt'
+# blocking script, will wait for external ip address retrieval (external ip written to file /tmp/getvpnextip)
 source /root/getvpnextip.sh
