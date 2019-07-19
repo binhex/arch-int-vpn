@@ -13,7 +13,7 @@ curl --connect-timeout 5 --max-time 600 --retry 5 --retry-delay 0 --retry-max-ti
 unzip /tmp/scripts-master.zip -d /tmp
 
 # move shell scripts to /root
-mv /tmp/scripts-master/shell/arch/docker/*.sh /root/
+mv /tmp/scripts-master/shell/arch/docker/*.sh /usr/local/bin/
 
 # pacman packages
 ####
