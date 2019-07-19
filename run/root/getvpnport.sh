@@ -27,7 +27,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		jq_query_filter_portforward='.[] | select(.port_forward|tostring | contains("true"))'
 
 		# run curly to grab api result
-		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piasupportportforwardapi" -url "${pia_vpninfo_api}"
+		curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piasupportportforwardapi" -url "${pia_vpninfo_api}"
 
 		if [[ "${?}" != 0 ]]; then
 
@@ -83,7 +83,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
 		# run curly to grab api result
-		/root/curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piaportassignapi" -url "${pia_vpnport_api}/?client_id=${client_id}"
+		curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piaportassignapi" -url "${pia_vpnport_api}/?client_id=${client_id}"
 
 		if [[ "${?}" != 0 ]]; then
 
