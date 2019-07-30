@@ -29,7 +29,8 @@ function check_incoming_port() {
 
 				echo "[debug] rTorrent incoming port '${rtorrent_port}' is open"
 
-				# mark as port open by returning zero value
+				# mark as port open by returning zero value and setting variable
+				port_change="false"
 				return 0
 
 			fi
@@ -43,7 +44,8 @@ function check_incoming_port() {
 
 				echo "[info] rTorrent incoming port closed, marking for reconfigure"
 
-				# mark for reconfigure by returning non zero value
+				# mark for reconfigure by returning non zero value and setting variable
+				port_change="true"
 				return 1
 
 			else
@@ -51,6 +53,7 @@ function check_incoming_port() {
 				echo "[warn] Incoming port site '${incoming_port_check_url}' failed to web scrape, marking as failed"
 
 				# mark as web scrape failed
+				port_change="false"
 				return 4
 
 			fi
@@ -62,6 +65,7 @@ function check_incoming_port() {
 		echo "[warn] External site '${incoming_port_check_url}' used to check incoming port is currently down"
 
 		# mark as failure to connect to external site to check port by returning non zero value
+		port_change="false"
 		return 2
 
 	fi
