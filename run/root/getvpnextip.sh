@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# define name servers to connect to in order to get external ip address
-# if name servers dont respond then use web servers to get external ip address
-pri_ns="ns1.google.com"
-sec_ns="resolver1.opendns.com"
-pri_url="http://checkip.amazonaws.com"
-sec_url="http://whatismyip.akamai.com"
-ter_url="https://showextip.azurewebsites.net"
-
 # define timeout periods
 curl_connnect_timeout_secs=10
 curl_max_time_timeout_secs=30
@@ -26,120 +18,163 @@ function check_valid_ip() {
 	return 0
 }
 
-# function to attempt to get external ip using ns or web
-function get_external_ip() {
+# function to get external ip using name server lookup
+function get_external_ip_ns() {
 
-	echo "[info] Attempting to get external IP using Name Server '${pri_ns}'..."
+	ns_query="${1}"
+	site="${2}"
 
 	# note -v 'SERVER' is to prevent name server ip being matched from stdout
-	external_ip="$(drill -I ${vpn_ip} -4 TXT o-o.myaddr.l.google.com @${pri_ns} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
+	external_ip="$(drill -I ${vpn_ip} -4 ${ns_query} ${site} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
 	check_valid_ip "${external_ip}"
 	return_code="$?"
 
 	# if empty value returned, or ip not in correct format then try secondary ns
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		echo "[warn] Failed to get external IP using Name Server '${pri_ns}', trying '${sec_ns}'..."
+		echo "1"
 
 	else
 
-		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		eval "$1=${external_ip}"
-		return 0
+		# write external ip address to text file, this is then read by the downloader script
+		echo "${external_ip}" > /tmp/getvpnextip
+
+		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+		chmod +r /tmp/getvpnextip
+
+		echo "${external_ip}"
 
 	fi
 
-	# note -v 'SERVER' is to prevent name server ip being matched from stdout
-	external_ip="$(drill -I ${vpn_ip} -4 myip.opendns.com @${sec_ns} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
-	check_valid_ip "${external_ip}"
-	return_code="$?"
+}
 
-	# if empty value returned, or ip not in correct format then try secondary ns
-	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
+# function to get external ip using website lookup
+function get_external_ip_web() {
 
-		echo "[warn] Failed to get external IP using Name Server '${sec_ns}', trying '${pri_url}'..."
+	site="${1}"
+	grep_regex="${2}"
 
+	if [[ -n "${grep_regex}" ]];then
+		external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${site} 2> /dev/null | grep -P -o -m 1 ${grep_regex})"
 	else
-
-		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		eval "$1=${external_ip}"
-		return 0
-
+		external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${site} 2> /dev/null)"
 	fi
 
-	external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${pri_url} 2> /dev/null)"
 	check_valid_ip "${external_ip}"
 	return_code="$?"
 
 	# if empty value returned, or ip not in correct format then try primary url
 	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
 
-		echo "[warn] Failed to get external IP using Web Server '${pri_url}', trying '${sec_url}'..."
+		echo "1"
 
 	else
 
-		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		eval "$1=${external_ip}"
-		return 0
+		# write external ip address to text file, this is then read by the downloader script
+		echo "${external_ip}" > /tmp/getvpnextip
+
+		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+		chmod +r /tmp/getvpnextip
+
+		echo "${external_ip}"
 
 	fi
-
-	external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${sec_url} 2> /dev/null)"
-	check_valid_ip "${external_ip}"
-	return_code="$?"
-
-	# if empty value returned, or ip not in correct format then try secondary url
-	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
-
-		echo "[warn] Failed to get external IP using Web Server '${sec_url}', trying '${ter_url}'..."
-
-	else
-
-		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		eval "$1=${external_ip}"
-		return 0
-
-	fi
-
-	external_ip="$(curl --connect-timeout ${curl_connnect_timeout_secs} --max-time ${curl_max_time_timeout_secs} --interface ${vpn_ip} ${ter_url} 2> /dev/null | grep -P -o -m 1 '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
-	check_valid_ip "${external_ip}"
-	return_code="$?"
-
-	# if empty value returned, or ip not in correct format then try secondary url
-	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
-
-		echo "[warn] Failed to get external IP using Web Server '${ter_url}'"
-
-	else
-
-		echo "[info] Successfully retrieved external IP address ${external_ip}"
-		eval "$1=${external_ip}"
-		return 0
-
-	fi
-
-	# if we still havent got the external ip address then perform tests and then set to loopback and exit
-	echo "[warn] Cannot determine external IP address, performing tests before setting to lo '127.0.0.1'..."
-	echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
-	echo "[info] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -I ${vpn_ip} -4 "${VPN_REMOTE}"
-	echo "[info] Show contents of hosts file" ; cat /etc/hosts
-	eval "$1=127.0.0.1"
-	return 1
 
 }
 
 # check that app requires external ip (note this env var is passed through to up script via openvpn --sentenv option)
 if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; then
 
-	# save return value from function
-	external_ip=""
-	get_external_ip external_ip
+	if [[ -z "${vpn_ip}" ]]; then
+		echo "[warn] VPN IP address is not defined or is an empty string"
+		return 1
+	fi
 
-	# write external ip address to text file, this is then read by the downloader script
-	echo "${external_ip}" > /tmp/getvpnextip
+	site="ns1.google.com"
+	ns_query="TXT o-o.myaddr.l.google.com"
 
-	# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-	chmod +r /tmp/getvpnextip
+	echo "[info] Attempting to get external IP using Name Server '${site}'..."
+	result=$(get_external_ip_ns "${ns_query}" "@${site}")
+
+	if [ "${result}" == "1" ]; then
+
+		site="resolver1.opendns.com"
+		ns_query="myip.opendns.com"
+
+		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
+		result=$(get_external_ip_ns "${ns_query}" "@${site}")
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${result}"
+		return 0
+
+	fi
+
+	if [ "${result}" == "1" ]; then
+
+		site="http://checkip.amazonaws.com"
+
+		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
+		result=$(get_external_ip_web "${site}")
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${result}"
+		return 0
+
+	fi
+
+	if [ "${result}" == "1" ]; then
+
+		site="http://whatismyip.akamai.com"
+
+		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
+		result=$(get_external_ip_web "${site}")
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${result}"
+		return 0
+
+	fi
+
+	if [ "${result}" == "1" ]; then
+
+		site="https://showextip.azurewebsites.net"
+		grep_regex='[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+
+		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
+		result=$(get_external_ip_web "${site}" "${grep_regex}")
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${result}"
+		return 0
+
+	fi
+
+	if [ "${result}" == "1" ]; then
+
+		echo "[warn] Cannot determine external IP address, performing tests before setting to '127.0.0.1'..."
+		echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
+		echo "[info] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -I ${vpn_ip} -4 "${VPN_REMOTE}"
+		echo "[info] Show contents of hosts file" ; cat /etc/hosts
+
+		# write external ip address to text file, this is then read by the downloader script
+		echo "127.0.0.1" > /tmp/getvpnextip
+
+		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+		chmod +r /tmp/getvpnextip
+
+		return 1
+
+	else
+
+		echo "[info] Successfully retrieved external IP address ${result}"
+		return 0
+
+	fi
 
 else
 
