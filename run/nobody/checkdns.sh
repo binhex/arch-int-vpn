@@ -15,7 +15,7 @@ check_dns() {
 		return 1
 	fi
 
-	cat /tmp/checkdns | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' || return 1
+	cat /tmp/checkdns | grep -oqE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' || return 1
 
 	return 0
 }
