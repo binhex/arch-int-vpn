@@ -10,15 +10,15 @@
 # function to verify iptables chain blocking policies are in place
 check_iptables() {
 
-	# check /tmp/checkiptables file exists
-	if [ ! -f /tmp/checkiptables ]; then
+	# check /tmp/getiptables file exists
+	if [ ! -f /tmp/getiptables ]; then
 		return 1
 	fi
 
 	# check all chain policies are set to drop
-	cat /tmp/checkiptables | grep -q '\-P INPUT DROP' || return 1
-	cat /tmp/checkiptables | grep -q '\-P FORWARD DROP' || return 1
-	cat /tmp/checkiptables | grep -q '\-P OUTPUT DROP' || return 1
+	cat /tmp/getiptables | grep -q '\-P INPUT DROP' || return 1
+	cat /tmp/getiptables | grep -q '\-P FORWARD DROP' || return 1
+	cat /tmp/getiptables | grep -q '\-P OUTPUT DROP' || return 1
 
 	return 0
 }
