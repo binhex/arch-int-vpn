@@ -23,15 +23,15 @@ if [[ "${DEBUG}" == "true" ]]; then
 fi
 
 # loop and wait until tunnel adapter local ip is valid
-current_vpn_ip=""
-while ! check_valid_ip "${current_vpn_ip}"
+vpn_ip=""
+while ! check_valid_ip "${vpn_ip}"
 do
 	sleep 0.1
-	current_vpn_ip=$(ifconfig "${VPN_DEVICE_TYPE}" 2>/dev/null | grep 'inet' | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
+	vpn_ip=$(ifconfig "${VPN_DEVICE_TYPE}" 2>/dev/null | grep 'inet' | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
 done
 
 if [[ "${DEBUG}" == "true" ]]; then
-	echo "[debug] Valid IP address from tunnel acquired '${current_vpn_ip}'"
+	echo "[debug] Valid IP address from tunnel acquired '${vpn_ip}'"
 fi
 
-echo "${current_vpn_ip}" > /tmp/getvpnip
+echo "${vpn_ip}" > /tmp/getvpnip
