@@ -34,4 +34,4 @@ if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Valid IP address from tunnel acquired '${current_vpn_ip}'"
 fi
 
-vpn_ip="${current_vpn_ip}"
+echo "${current_vpn_ip}" > /tmp/getvpnip
