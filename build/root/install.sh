@@ -25,9 +25,4 @@ pacman_packages="kmod openvpn privoxy bind-tools gnu-netcat ipcalc"
 pacman -S --needed $pacman_packages --noconfirm
 
 # cleanup
-yes|pacman -Scc
-pacman --noconfirm -Rns $(pacman -Qtdq) 2> /dev/null || true
-rm -rf /usr/share/locale/*
-rm -rf /usr/share/man/*
-rm -rf /usr/share/gtk-doc/*
-rm -rf /tmp/*
+cleanup.sh
