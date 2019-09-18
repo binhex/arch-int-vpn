@@ -21,10 +21,12 @@ function check_incoming_port() {
 
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] Checking ${APPLICATION} incoming port '${!application_incoming_port}' is open, using external website '${incoming_port_check_url}'..."
+			set -x
 		fi
 
 		# use curl to check incoming port is open (web scrape)
 		curl --connect-timeout 30 --max-time 120 --silent --data "port=${!application_incoming_port}&submit=Check" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_open}" 1> /dev/null
+		set +x
 
 		if [[ "${?}" -eq 0 ]]; then
 
@@ -40,8 +42,13 @@ function check_incoming_port() {
 
 		else
 
+			if [[ "${DEBUG}" == "true" ]]; then
+				set -x
+			fi
+
 			# if port is not open then check we have a match for closed, if no match then suspect web scrape issue
 			curl --connect-timeout 30 --max-time 120 --silent --data "port=${!application_incoming_port}&submit=Check" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_closed}" 1> /dev/null
+			set +x
 
 			if [[ "${?}" -eq 0 ]]; then
 
