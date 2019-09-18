@@ -102,7 +102,7 @@ else
 
 		# get answer for remote endpoint from ns, used later on in openvpn.sh to specify multiple --remote entries
 		# note -v 'SERVER' is to prevent name server ip being matched from stdout
-		remote_dns_answer=$(drill -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+		remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
 		# check answer is not blank, if it is blank assume bad ns
 		if [[ ! -z "${remote_dns_answer}" ]]; then
@@ -176,7 +176,7 @@ else
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
-		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill "${VPN_REMOTE}"
+		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -a "${VPN_REMOTE}"
 		echo "[debug] Show contents of hosts file" ; cat /etc/hosts
 	fi
 

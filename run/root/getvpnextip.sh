@@ -25,7 +25,7 @@ function get_external_ip_ns() {
 	site="${2}"
 
 	# note -v 'SERVER' is to prevent name server ip being matched from stdout
-	external_ip="$(drill -I ${vpn_ip} -4 ${ns_query} ${site} | grep -v 'SERVER' | grep -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
+	external_ip="$(drill -a -I ${vpn_ip} -4 ${ns_query} ${site} | grep -v 'SERVER' | grep -m 63 -oP '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
 	check_valid_ip "${external_ip}"
 	return_code="$?"
 
@@ -158,7 +158,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; t
 
 		echo "[warn] Cannot determine external IP address, performing tests before setting to '127.0.0.1'..."
 		echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
-		echo "[info] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -I ${vpn_ip} -4 "${VPN_REMOTE}"
+		echo "[info] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -a -I ${vpn_ip} -4 "${VPN_REMOTE}"
 		echo "[info] Show contents of hosts file" ; cat /etc/hosts
 
 		# write external ip address to text file, this is then read by the downloader script

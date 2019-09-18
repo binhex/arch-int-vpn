@@ -15,7 +15,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 		# check we can resolve names before continuing (required for getvpnextip.sh script)
 		# note -v 'SERVER' is to prevent name server ip being matched from stdout
-		remote_dns_answer=$(drill -4 "${1}" 2> /dev/null | grep -v 'SERVER' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+		remote_dns_answer=$(drill -a -4 "${1}" 2> /dev/null | grep -v 'SERVER' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
 		# check answer is not blank, if it is blank assume bad ns
 		if [[ ! -z "${remote_dns_answer}" ]]; then
