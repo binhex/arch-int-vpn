@@ -100,28 +100,41 @@ else
 	# if the vpn_remote is NOT an ip address then resolve it
 	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
 
-		# get answer for remote endpoint from ns, used later on in openvpn.sh to specify multiple --remote entries
-		# note -v 'SERVER' is to prevent name server ip being matched from stdout
+		retry_count=12
 		remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
-		# check answer is not blank, if it is blank assume bad ns
-		if [[ ! -z "${remote_dns_answer}" ]]; then
+		while [ -z "${remote_dns_answer}" ]; do
 
-			# get first ip from remote_dns_answer and write to the hosts file
-			# this is required as openvpn will use the remote entry in the ovpn file
-			# even if you specify the --remote options on the command line, and thus we
-			# must also be able to resolve the host name (assuming it is a name and not ip).
-			remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
+			retry_count=$((retry_count-1))
+			if [ "${retry_count}" -eq "0" ]; then
 
-			# if not blank then write to hosts file
-			if [[ ! -z "${remote_dns_answer_first}" ]]; then
-				echo "${remote_dns_answer_first}	${VPN_REMOTE}" >> /etc/hosts
+				echo "[crit] '${VPN_REMOTE}' cannot be resolved, possible DNS issues, exiting..." ; exit 1
+
+			else
+
+				remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+
+				if [[ "${DEBUG}" == "true" ]]; then
+
+						echo "[debug] Failed to resolve endpoint '${VPN_REMOTE}' retrying..."
+
+				fi
+
+				sleep 5s
+
 			fi
 
-		else
+		done
 
-			echo "[crit] ${VPN_REMOTE} cannot be resolved, possible DNS issues" ; exit 1
+		# get first ip from remote_dns_answer and write to the hosts file
+		# this is required as openvpn will use the remote entry in the ovpn file
+		# even if you specify the --remote options on the command line, and thus we
+		# must also be able to resolve the host name (assuming it is a name and not ip).
+		remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
 
+		# if not blank then write to hosts file
+		if [[ ! -z "${remote_dns_answer_first}" ]]; then
+			echo "${remote_dns_answer_first}	${VPN_REMOTE}" >> /etc/hosts
 		fi
 
 	fi
