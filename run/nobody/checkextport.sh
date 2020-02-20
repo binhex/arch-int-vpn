@@ -14,19 +14,18 @@ function check_incoming_port() {
 	regex_open="${2}"
 	regex_closed="${3}"
 
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Checking ${APPLICATION} incoming port '${!application_incoming_port}' is open, using external website '${incoming_port_check_url}'..."
+		set -x
+	fi
+
 	# make sure external website used to check incoming port is operational
 	curly.sh -rc 5 -rw 2 -sm true -url "${incoming_port_check_url}"
 
 	if [[ "${?}" -eq 0 ]]; then
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Checking ${APPLICATION} incoming port '${!application_incoming_port}' is open, using external website '${incoming_port_check_url}'..."
-			set -x
-		fi
-
 		# use curl to check incoming port is open (web scrape)
 		curl --connect-timeout 30 --max-time 120 --silent --data "port=${!application_incoming_port}&submit=Check" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_open}" 1> /dev/null
-		set +x
 
 		if [[ "${?}" -eq 0 ]]; then
 
@@ -36,19 +35,14 @@ function check_incoming_port() {
 
 				# mark as port open by returning zero value and setting variable
 				vpn_port_change="false"
-				return 0
+				set +x ; return 0
 
 			fi
 
 		else
 
-			if [[ "${DEBUG}" == "true" ]]; then
-				set -x
-			fi
-
 			# if port is not open then check we have a match for closed, if no match then suspect web scrape issue
 			curl --connect-timeout 30 --max-time 120 --silent --data "port=${!application_incoming_port}&submit=Check" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_closed}" 1> /dev/null
-			set +x
 
 			if [[ "${?}" -eq 0 ]]; then
 
@@ -56,7 +50,7 @@ function check_incoming_port() {
 
 				# mark for reconfigure by returning non zero value and setting variable
 				vpn_port_change="true"
-				return 1
+				set +x ; return 1
 
 			else
 
@@ -64,7 +58,7 @@ function check_incoming_port() {
 
 				# mark as web scrape failed
 				vpn_port_change="false"
-				return 4
+				set +x ; return 4
 
 			fi
 
@@ -76,7 +70,7 @@ function check_incoming_port() {
 
 		# mark as failure to connect to external site to check port by returning non zero value
 		vpn_port_change="false"
-		return 2
+		set +x ; return 2
 
 	fi
 }
