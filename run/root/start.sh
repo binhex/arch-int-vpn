@@ -137,8 +137,10 @@ else
 			echo "${remote_dns_answer_first}	${VPN_REMOTE}" >> /etc/hosts
 		fi
 
+	else
+		remote_dns_answer_first="${VPN_REMOTE}"
 	fi
-
+	
 	# check if we have tun module available
 	check_tun_available=$(lsmod | grep tun)
 
