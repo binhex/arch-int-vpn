@@ -61,7 +61,7 @@ else
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
 	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
 
-	# remove dhcp option for dns ipv4/ipv6 configuration from ovpn file if present (dns defined via name_server env var value)
+	# remove dhcp option for dns ipv6 configuration from ovpn file if present (dns defined via name_server env var value)
 	sed -i '/^dhcp-option DNS6.*/d' "${VPN_CONFIG}"
 
 	# remove redirection of gateway for ipv4/ipv6 from ovpn file if present (we want a consistent gateway set)
