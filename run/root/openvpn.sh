@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # define common command lne parameters for openvpn
-openvpn_cli="/usr/bin/openvpn --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --setenv VPN_PROV '${VPN_PROV}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_ENABLED '${VPN_ENABLED}' --setenv VPN_REMOTE '${VPN_REMOTE}' --setenv APPLICATION '${APPLICATION}' --script-security 2 --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec' --up /root/openvpnup.sh --up-delay --up-restart"
+openvpn_cli="/usr/bin/openvpn --daemon --reneg-sec 0 --mute-replay-warnings --auth-nocache --setenv VPN_PROV '${VPN_PROV}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_ENABLED '${VPN_ENABLED}' --setenv VPN_REMOTE '${VPN_REMOTE}' --setenv APPLICATION '${APPLICATION}' --script-security 2 --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6 ' --pull-filter ignore 'ifconfig-ipv6 ' --pull-filter ignore 'tun-ipv6 ' --pull-filter ignore 'dhcp-option DNS6' --pull-filter ignore 'redirect-gateway' --pull-filter ignore 'redirect-gateway ipv6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec' --up /root/openvpnup.sh --up-delay --up-restart"
 
 # check answer is not blank, generated in start.sh, if it is blank assume bad ns or ${VPN_REMOTE} is an ip address
 if [[ ! -z "${remote_dns_answer}" ]]; then
