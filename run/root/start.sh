@@ -12,6 +12,8 @@ else
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Environment variables defined as follows" ; set
 		echo "[debug] Directory listing of files in /config/openvpn as follows" ; ls -al /config/openvpn
+		echo "[debug] VPN Remote list"
+		[ -e /config/openvpn/vpnremotelist ] && cat /config/openvpn/vpnremotelist
 	fi
 
 	# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
@@ -19,7 +21,7 @@ else
 
 		# store credentials in separate file for authentication
 		if ! $(grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"); then
-			sed -i -e 's/auth-user-pass.*/auth-user-pass credentials.conf/g' "${VPN_CONFIG}"
+			sed -i -E -e 's/(auth-user-pass.*)/auth-user-pass credentials.conf\n#\1/g' "${VPN_CONFIG}" || true
 		fi
 
 		echo "${VPN_USER}" > /config/openvpn/credentials.conf
@@ -41,36 +43,36 @@ else
 	fi
 
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
-	sed -i '/^persist-tun/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^persist-tun)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove reneg-sec from ovpn file if present, this is removed to prevent re-checks and dropouts
-	sed -i '/^reneg-sec.*/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^reneg-sec.*)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove up script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
-	sed -i '/^up\s.*/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^up\s.*)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove down script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
-	sed -i '/^down\s.*/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^down\s.*)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
-	sed -i '/^route-ipv6/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^route-ipv6)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
-	sed -i '/^ifconfig-ipv6/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^ifconfig-ipv6)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
-	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^tun-ipv6)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove dhcp option for dns ipv6 configuration from ovpn file if present (dns defined via name_server env var value)
-	sed -i '/^dhcp-option DNS6.*/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^dhcp-option DNS6.*)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove redirection of gateway for ipv4/ipv6 from ovpn file if present (we want a consistent gateway set)
-	sed -i '/^redirect-gateway.*/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^redirect-gateway.*)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove windows specific openvpn options
-	sed -i '/^route-method exe/d' "${VPN_CONFIG}"
-	sed -i '/^service\s.*/d' "${VPN_CONFIG}"
-	sed -i '/^block-outside-dns/d' "${VPN_CONFIG}"
+	sed -i -E 's/(^route-method exe)/#\1/' "${VPN_CONFIG}" || true
+	sed -i -E 's/(^service\s.*)/#\1/' "${VPN_CONFIG}" || true
+	sed -i -E 's/(^block-outside-dns)/#\1/' "${VPN_CONFIG}" || true
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
@@ -80,7 +82,7 @@ else
 	vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
 
 	# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
-	sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
+	sed -i -E "s/(^dev\s${VPN_DEVICE_TYPE}.*)/dev ${VPN_DEVICE_TYPE}\n#\1/g" "${VPN_CONFIG}"  || true
 
 	# get ip for local gateway (eth0)
 	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
@@ -103,50 +105,85 @@ else
 
 	done
 
-	# if the vpn_remote is NOT an ip address then resolve it
-	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+	# Set the $remote_dns_answer to the space separated list of ip addresses resolved from
+	# a VPN server name.  Skips VPN server names that are already IP addresses.
+	# Retries the DNS resolution up to 12 times with a 5 second delay in between each attempt
+	# if a look up fails.  After 12 failures it throws an error and exits
+	# Args:
+	#  1: Servername or IP address of VPN remote
+	# Return: sets $remote_dns_answer to the space separated list of resolved IP addresses
+	get_remote_dns_resolution() {
+		local vpn_remote="${1}"
+		local retry_count
+		local remote_dns_answer_first
 
-		retry_count=12
-		remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+		# is it already an IP address?
+		if ! echo "${vpn_remote}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+			retry_count=12
 
-		while [ -z "${remote_dns_answer}" ]; do
-
-			retry_count=$((retry_count-1))
-			if [ "${retry_count}" -eq "0" ]; then
-
-				echo "[crit] '${VPN_REMOTE}' cannot be resolved, possible DNS issues, exiting..." ; exit 1
-
-			else
-
-				remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
-
+			# do-while, no resolution and haven't hit retry limit
+			while [ -z "${remote_dns_answer}" ] && [ "${retry_count}" -gt "0" ]; do
+				# attempt to look up the DNS resolution, limiting to 63 IPv4 responses
+				remote_dns_answer=$(drill -a -4 "${vpn_remote}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 				if [[ "${DEBUG}" == "true" ]]; then
-
-						echo "[debug] Failed to resolve endpoint '${VPN_REMOTE}' retrying..."
-
+					echo "[debug] Failed to resolve endpoint '${vpn_remote}' retrying..."
 				fi
+				if [ -z "${remote_dns_answer}" ] ; then
+					retry_count=$((retry_count-1))
+					sleep 5s
+				fi
+			done
 
-				sleep 5s
-
+			# stopped because of retry limit?
+			if [ "${retry_count}" -eq "0" ]; then
+				echo "[crit] '${vpn_remote}' cannot be resolved, possible DNS issues, exiting..." ; exit 1
 			fi
 
-		done
+			# get first ip from remote_dns_answer and write to the hosts file
+			# this is required as openvpn will use the remote entry in the ovpn file
+			# even if you specify the --remote options on the command line, and thus we
+			# must also be able to resolve the host name (assuming it is a name and not ip).
+			remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
 
-		# get first ip from remote_dns_answer and write to the hosts file
-		# this is required as openvpn will use the remote entry in the ovpn file
-		# even if you specify the --remote options on the command line, and thus we
-		# must also be able to resolve the host name (assuming it is a name and not ip).
-		remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
-
-		# if not blank then write to hosts file
-		if [[ ! -z "${remote_dns_answer_first}" ]]; then
-			echo "${remote_dns_answer_first}	${VPN_REMOTE}" >> /etc/hosts
+			# if not blank then write to hosts file
+			if [[ ! -z "${remote_dns_answer_first}" ]]; then
+				echo "${remote_dns_answer_first}	${vpn_remote}" >> /etc/hosts
+			fi
+		else # was already an ip address
+			remote_dns_answer="${1}"
 		fi
+	}
 
-	else
-		remote_dns_answer_first="${VPN_REMOTE}"
+	# couldn't export, so load from file
+	if [ -e /config/openvpn/vpnremotelist ] ; then
+		# retrieve the VPN_REMOTE_LIST, VPN_PROTOCOL_LIST, and VPN_PORT_LIST
+		readarray VPN_REMOTE_LIST < <(cat /config/openvpn/vpnremotelist | awk '{print $1}')
+		readarray VPN_PORT_LIST < <(cat /config/openvpn/vpnremotelist | awk '{print $2}')
+		readarray VPN_PROTOCOL_LIST < <(cat /config/openvpn/vpnremotelist | awk '{print $3}')
+		for i in $(seq 0 $((${#VPN_REMOTE_LIST[@]} - 1))) ; do
+			VPN_REMOTE_LIST[$i]=$(echo "${VPN_REMOTE_LIST[$i]}" | tr -d '[:space:]')
+			VPN_PORT_LIST[$i]=$(echo "${VPN_PORT_LIST[$i]}" | tr -d '[:space:]')
+			VPN_PROTOCOL_LIST[$i]=$(echo "${VPN_PROTOCOL_LIST[$i]}" | tr -d '[:space:]')
+		done
 	fi
-	
+
+	# parse the VPN_REMOTE_LIST into an array of lists of space separated ip addresses
+	if [ ${#VPN_REMOTE_LIST[@]} -gt 0 ] ; then
+		for i in $(seq 0 $((${#VPN_REMOTE_LIST[@]} - 1))) ; do
+			get_remote_dns_resolution "${VPN_REMOTE_LIST[$i]}"
+			remote_dns_answers_list[$i]="${remote_dns_answer}"
+			echo "${remote_dns_answer}" >> /tmp/vpnremotednsanswers
+		done
+		# need to set this always, pick the first one
+		export remote_dns_answer_first=$(echo "${remote_dns_answers_list[0]}" | cut -d ' ' -f 1)
+	elif [[ -n "${VPN_REMOTE}" ]] ; then
+		# VPN_REMOTE is deprecated, but for backward compatibility we leave $remote_dns_answer
+		# set to what VPN_REMOTE resolves to
+		get_remote_dns_resolution "${VPN_REMOTE}"
+		# need to set this always
+		export remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
+	fi
+
 	# check if we have tun module available
 	check_tun_available=$(lsmod | grep tun)
 
@@ -197,7 +234,17 @@ else
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
-		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -a "${VPN_REMOTE}"
+		if [[ -n "${VPN_REMOTE}" ]] || [ ${#VPN_REMOTE_LIST[@]} -gt 0 ] ; then
+			echo "[debug] Show name resolution for VPN endpoints:"
+			if [ ${#VPN_REMOTE_LIST[@]} -gt 0 ] ; then
+				for i in $(seq 0 $((${#VPN_REMOTE_LIST[@]} - 1))) ; do
+					echo "            ${VPN_REMOTE_LIST[$i]} = ${remote_dns_answers_list[$i]}"
+				done
+			fi
+			elif [[ -n "${VPN_REMOTE}" ]] ; then
+				echo "            ${VPN_REMOTE} = ${remote_dns_answer}"
+			fi
+		fi
 		echo "[debug] Show contents of hosts file" ; cat /etc/hosts
 	fi
 

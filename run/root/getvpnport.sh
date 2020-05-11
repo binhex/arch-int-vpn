@@ -18,7 +18,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		# check endpoint is port forward enabled
 		####
 
-		echo "[info] Checking endpoint '${VPN_REMOTE}' is port forward enabled..."
+		echo "[info] Checking PIA endpoints have port forward enabled..."
 
 		# pia api url for endpoint status (port forwarding enabled true|false)
 		pia_vpninfo_api="https://www.privateinternetaccess.com/vpninfo/servers?version=82"
@@ -42,19 +42,52 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 			# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
 			jq_query_details=$(echo "${jq_query_result}" | jq -r '.dns' | xargs)
 
-			# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
-			# grep -w = exact match (whole word), grep -q = quiet mode (no output)
-			echo "${jq_query_details}" | grep -qw "${VPN_REMOTE}"
+			# Args:
+			#  1: quoted endpoint query to parse
+			#  2: vpn remote to check
+			# Return: 1 if not found, 0 if found
+			check_pia_endpoint() {
+				local query="${1}"
+				local vpn_remote="${2}"
+				local ret=1
 
-			if [[ "${?}" != 0 ]]; then
+				# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
+				# grep -w = exact match (whole word), grep -q = quiet mode (no output)
 
-				echo "[warn] PIA endpoint '${VPN_REMOTE}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
-				echo "[info] Please consider switching to one of the endpoints shown below"
+				# Parses the PIA endpoint query to make sure the remote is in it, warning if not
+				echo "${query}" | grep -qw "${vpn_remote}"
+				if [[ "${?}" != 0 ]]; then
+					echo "[warn] PIA endpoint '${vpn-remote}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
+					echo "[info] Please consider switching to one of the endpoints shown below"
+					ret=1
+				else
+					echo "[info] PIA endpoint '${vpn_remote}' is in the list of endpoints that support port forwarding"
+					ret=0
+				fi
+                return $ret
+			}
 
-			else
+			# couldn't export, so load from file
+			if [ -e /config/openvpn/vpnremotelist ] ; then
+				# retrieve the VPN_REMOTE_LIST, VPN_PROTOCOL_LIST, and VPN_PORT_LIST
+				readarray VPN_REMOTE_LIST < <(cat /config/openvpn/vpnremotelist | awk '{print $1}')
+				readarray VPN_PORT_LIST < <(cat /config/openvpn/vpnremotelist | awk '{print $2}')
+				readarray VPN_PROTOCOL_LIST < <(cat /config/openvpn/vpnremotelist | awk '{print $3}')
+				for i in $(seq 0 $((${#VPN_REMOTE_LIST[@]} - 1))) ; do
+					VPN_REMOTE_LIST[$i]=$(echo "${VPN_REMOTE_LIST[$i]}" | tr -d '[:space:]')
+					VPN_PORT_LIST[$i]=$(echo "${VPN_PORT_LIST[$i]}" | tr -d '[:space:]')
+					VPN_PROTOCOL_LIST[$i]=$(echo "${VPN_PROTOCOL_LIST[$i]}" | tr -d '[:space:]')
+				done
+			fi
 
-				echo "[info] PIA endpoint '${VPN_REMOTE}' is in the list of endpoints that support port forwarding"
+			if [ ${#VPN_REMOTE_LIST[@]} -gt 0 ] ; then
+				for i in $(seq 0 $((${#VPN_REMOTE_LIST[@]} - 1))) ; do
+					check_pia_endpoint "${jq_query_details}" "${VPN_REMOTE_LIST[$i]}"
+				done
+			# deprecated, would be duplicate of VPN_REMOTE_LIST[0] if both are set
+			elif [ -n "${VPN_REMOTE}" ] ; then
 
+				check_pia_endpoint "${jq_query_details}" "${VPN_REMOTE}"
 			fi
 
 			# convert to list with separator being space
