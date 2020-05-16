@@ -67,7 +67,7 @@ else
 	sed -i -E 's/(^dhcp-option DNS6.*)/#\1/' "${VPN_CONFIG}" || true
 
 	# remove redirection of gateway for ipv4/ipv6 from ovpn file if present (we want a consistent gateway set)
-	sed -i -E 's/(^redirect-gateway.*)/#\1/' "${VPN_CONFIG}" || true
+	sed -i -E 's/(^redirect-gateway.*)/#\1/' "${VPN_CONFIG}"
 
 	# remove windows specific openvpn options
 	sed -i -E 's/(^route-method exe)/#\1/' "${VPN_CONFIG}" || true
