@@ -7,12 +7,17 @@ if [[ -z "${!application_incoming_port}" ]]; then
 	echo "[warn] ${APPLICATION} incoming port is not defined" ; return 3
 fi
 
+if [[ -z "${external_ip}" ]]; then
+	echo "[warn] External IP address is not defined" ; return 4
+fi
+
 # function to check incoming port is open
 function check_incoming_port() {
 
 	incoming_port_check_url="${1}"
-	regex_open="${2}"
-	regex_closed="${3}"
+	post_data="${2}"
+	regex_open="${3}"
+	regex_closed="${4}"
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Checking ${APPLICATION} incoming port '${!application_incoming_port}' is open, using external website '${incoming_port_check_url}'..."
@@ -25,7 +30,7 @@ function check_incoming_port() {
 	if [[ "${?}" -eq 0 ]]; then
 
 		# use curl to check incoming port is open (web scrape)
-		curl --connect-timeout 30 --max-time 120 --silent --data "port=${!application_incoming_port}&submit=Check" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_open}" 1> /dev/null
+		curl --connect-timeout 30 --max-time 120 --silent --data "${post_data}" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_open}" 1> /dev/null
 
 		if [[ "${?}" -eq 0 ]]; then
 
@@ -42,7 +47,7 @@ function check_incoming_port() {
 		else
 
 			# if port is not open then check we have a match for closed, if no match then suspect web scrape issue
-			curl --connect-timeout 30 --max-time 120 --silent --data "port=${!application_incoming_port}&submit=Check" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_closed}" 1> /dev/null
+			curl --connect-timeout 30 --max-time 120 --silent --data "${post_data}" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_closed}" 1> /dev/null
 
 			if [[ "${?}" -eq 0 ]]; then
 
@@ -76,9 +81,9 @@ function check_incoming_port() {
 }
 
 # run function for first site (web scrape)
-check_incoming_port "https://portchecker.co/check" "port ${!application_incoming_port} is.*?open" "port ${!application_incoming_port} is.*?closed"
+check_incoming_port "https://portchecker.co/" "target_ip=${external_ip}&port=${!application_incoming_port}" "Port ${!application_incoming_port} is.*?open" "Port ${!application_incoming_port} is.*?closed"
 
 # if site down or web scrape error then run function for second site (web scrape)
 if [[ "${?}" -eq 2 || "${?}" -eq 4 ]]; then
-	check_incoming_port "https://canyouseeme.org/" "success.*?on port.*?${!application_incoming_port}" "error.*?on port.*?${!application_incoming_port}"
+	check_incoming_port "https://canyouseeme.org/" "port=${!application_incoming_port}&submit=Check" "success.*?on port.*?${!application_incoming_port}" "error.*?on port.*?${!application_incoming_port}"
 fi
