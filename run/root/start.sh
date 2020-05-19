@@ -40,6 +40,8 @@ else
 
 	fi
 
+	# note - do not remove redirection of gateway for ipv6 - required for certain vpn providers (airvpn)
+
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
 	sed -i '/^persist-tun/d' "${VPN_CONFIG}"
 
@@ -63,9 +65,6 @@ else
 
 	# remove dhcp option for dns ipv6 configuration from ovpn file if present (dns defined via name_server env var value)
 	sed -i '/^dhcp-option DNS6.*/d' "${VPN_CONFIG}"
-
-	# remove redirection of gateway for ipv4/ipv6 from ovpn file if present (we want a consistent gateway set)
-	sed -i '/^redirect-gateway ipv6.*/d' "${VPN_CONFIG}"
 
 	# remove windows specific openvpn options
 	sed -i '/^route-method exe/d' "${VPN_CONFIG}"
