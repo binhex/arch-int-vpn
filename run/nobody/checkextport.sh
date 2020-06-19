@@ -25,7 +25,7 @@ function check_incoming_port() {
 	fi
 
 	# make sure external website used to check incoming port is operational
-	curly.sh -rc 5 -rw 2 -sm true -url "${incoming_port_check_url}"
+	curly.sh --retry-count 5 --retry-wait 2 --no-progress "true" --no-output "true" -url "${incoming_port_check_url}"
 
 	if [[ "${?}" -eq 0 ]]; then
 
