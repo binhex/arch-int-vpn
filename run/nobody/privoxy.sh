@@ -15,9 +15,6 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 
 	fi
 
-	# hack to fix up existing users config  - delme 2nd may 2020
-	sed -i -e "s~listen-address.*~listen-address :8118~g" /config/privoxy/config
-
 	if [[ "${privoxy_running}" == "false" ]]; then
 
 		echo "[info] Attempting to start Privoxy..."
