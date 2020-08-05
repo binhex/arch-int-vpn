@@ -15,7 +15,7 @@ if [[ ! -z "${remote_dns_answer}" ]]; then
 	done
 
 	# randomize the --remote option that openvpn will use to connect. this should help
-	# prevent getting stuck on a particular endpoint should it become unstable/unavailable
+	# prevent getting stuck on a particular server should it become unstable/unavailable
 	openvpn_cli="${openvpn_cli} --remote-random"
 
 fi
