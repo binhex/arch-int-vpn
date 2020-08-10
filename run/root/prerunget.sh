@@ -8,8 +8,5 @@ source /root/getvpnip.sh
 # blocking script, will wait for vpn incoming port to be assigned (port written to file /tmp/getvpnport)
 source /root/getvpnport.sh
 
-# blocking script, will wait for name resolution to be operational (ip address from resolved host written to file /tmp/getdns)
-source /root/getdns.sh "www.google.com"
-
 # blocking script, will wait for external ip address retrieval (external ip written to file /tmp/getvpnextip)
 source /root/getvpnextip.sh
