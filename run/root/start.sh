@@ -42,6 +42,8 @@ else
 
 	fi
 
+	# note - do not remove redirection of gateway for ipv6 - required for certain vpn providers (airvpn)
+
 	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
 	sed -i -E 's/(^persist-tun)/#\1/' "${VPN_CONFIG}" || true
 

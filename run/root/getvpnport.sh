@@ -28,7 +28,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 		# run curly to grab api result
 		rm -f "/tmp/piasupportportforwardapi"
-		curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piasupportportforwardapi" -url "${pia_vpninfo_api}"
+		curly.sh -ct 10 -rc 12 -of "/tmp/piasupportportforwardapi" -url "${pia_vpninfo_api}"
 
 		if [[ "${?}" != 0 ]]; then
 
@@ -118,7 +118,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 		# run curly to grab api result
 		rm -f "/tmp/piaportassignapi"
-		curly.sh -ct 10 -rc 12 -rw 10 -of "/tmp/piaportassignapi" -url "${pia_vpnport_api}/?client_id=${client_id}"
+		curly.sh -ct 10 -rc 12 -of "/tmp/piaportassignapi" -url "${pia_vpnport_api}/?client_id=${client_id}"
 
 		if [[ "${?}" != 0 ]]; then
 
