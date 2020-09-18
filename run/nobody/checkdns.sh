@@ -19,6 +19,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 	fi
 
 	retry_count=12
+	retry_wait=5
 
 	while true; do
 
@@ -46,9 +47,11 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		else
 
 			if [[ "${DEBUG}" == "true" ]]; then
-				echo "[debug] Having issues resolving name '${1}', sleeping before retry..."
+				echo "[debug] Having issues resolving name '${1}'"
+				echo "[debug] Retrying in ${retry_wait} secs..."
+				echo "[debug] ${retry_count} retries left"
 			fi
-			sleep 5s
+			sleep "${retry_wait}s"
 
 		fi
 
