@@ -85,7 +85,7 @@ else
 	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
 	echo "[info] Default route for container is ${DEFAULT_GATEWAY}"
 
-	# split comma seperated string into list from NAME_SERVERS env variable
+	# split comma separated string into list from NAME_SERVERS env variable
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
 
 	# remove existing ns, docker injects ns from host and isp ns can block/hijack
@@ -102,50 +102,76 @@ else
 
 	done
 
-	# if the vpn_remote is NOT an ip address then resolve it
-	if ! echo "${VPN_REMOTE}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+	# split comma separated string into list from VPN_REMOTE_SERVER variable
+	IFS=',' read -ra vpn_remote_server_list <<< "${VPN_REMOTE_SERVER}"
 
-		retry_count=12
-		remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+	# process remote servers in the array
+	for vpn_remote_item in "${vpn_remote_server_list[@]}"; do
 
-		while [ -z "${remote_dns_answer}" ]; do
+		vpn_remote_server=$(echo "${vpn_remote_item}" | tr -d ',')
 
-			retry_count=$((retry_count-1))
-			if [ "${retry_count}" -eq "0" ]; then
+		# if the vpn_remote_server is NOT an ip address then resolve it
+		if ! echo "${vpn_remote_server}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
 
-				echo "[crit] '${VPN_REMOTE}' cannot be resolved, possible DNS issues, exiting..." ; exit 1
+			retry_count=12
 
-			else
+			while true; do
 
-				remote_dns_answer=$(drill -a -4 "${VPN_REMOTE}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+				retry_count=$((retry_count-1))
 
-				if [[ "${DEBUG}" == "true" ]]; then
+				if [ "${retry_count}" -eq "0" ]; then
 
-						echo "[debug] Failed to resolve endpoint '${VPN_REMOTE}' retrying..."
+					echo "[crit] '${vpn_remote_server}' cannot be resolved, possible DNS issues, exiting..." ; exit 1
 
 				fi
 
-				sleep 5s
+				vpn_remote_item_dns_answer=$(drill -a -4 "${vpn_remote_server}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
+				# check answer is not blank, if it is blank assume bad ns
+				if [[ ! -z "${vpn_remote_item_dns_answer}" ]]; then
+
+					if [[ "${DEBUG}" == "true" ]]; then
+						echo "[debug] DNS operational, we can resolve name '${vpn_remote_server}' to address '${vpn_remote_item_dns_answer}'"
+					fi
+
+					# append remote server ip addresses to the string using comma separators
+					vpn_remote_ip+="${vpn_remote_item_dns_answer},"
+
+					break
+
+				else
+
+					if [[ "${DEBUG}" == "true" ]]; then
+						echo "[debug] Having issues resolving name '${vpn_remote_server}', sleeping before retry..."
+					fi
+					sleep 5s
+
+				fi
+
+			done
+
+			# get first ip from ${vpn_remote_item_dns_answer} and write to the hosts file
+			# this is required as openvpn will use the remote entry in the ovpn file
+			# even if you specify the --remote options on the command line, and thus we
+			# must also be able to resolve the host name (assuming it is a name and not ip).
+			remote_dns_answer_first=$(echo "${vpn_remote_item_dns_answer}" | cut -d ' ' -f 1)
+
+			# if not blank then write to hosts file
+			if [[ ! -z "${remote_dns_answer_first}" ]]; then
+				echo "${remote_dns_answer_first}	${vpn_remote_server}" >> /etc/hosts
 			fi
 
-		done
+		else
 
-		# get first ip from remote_dns_answer and write to the hosts file
-		# this is required as openvpn will use the remote entry in the ovpn file
-		# even if you specify the --remote options on the command line, and thus we
-		# must also be able to resolve the host name (assuming it is a name and not ip).
-		remote_dns_answer_first=$(echo "${remote_dns_answer}" | cut -d ' ' -f 1)
+			remote_dns_answer_first="${vpn_remote_server}"
 
-		# if not blank then write to hosts file
-		if [[ ! -z "${remote_dns_answer_first}" ]]; then
-			echo "${remote_dns_answer_first}	${VPN_REMOTE}" >> /etc/hosts
 		fi
 
-	else
-		remote_dns_answer_first="${VPN_REMOTE}"
-	fi
-	
+	done
+
+	# export all resolved vpn remote ip's - used in sourced openvpn.sh
+	export VPN_REMOTE_IP="${vpn_remote_ip}"
+
 	# check if we have tun module available
 	check_tun_available=$(lsmod | grep tun)
 
@@ -196,7 +222,12 @@ else
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Show name servers defined for container" ; cat /etc/resolv.conf
-		echo "[debug] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -a "${VPN_REMOTE}"
+
+		# iterate over array of remote servers
+		for index in "${!vpn_remote_server_list[@]}"; do
+			echo "[debug] Show name resolution for VPN endpoint ${vpn_remote_server_list[$index]}" ; drill -a "${vpn_remote_server_list[$index]}"
+		done
+
 		echo "[debug] Show contents of hosts file" ; cat /etc/hosts
 	fi
 

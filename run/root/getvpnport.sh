@@ -18,7 +18,10 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		# check endpoint is port forward enabled
 		####
 
-		echo "[info] Checking endpoint '${VPN_REMOTE}' is port forward enabled..."
+		# get current iteration for the comma separated value 
+		vpn_remote_iter="${vpn_remote_array[vpn_remote_iter]}"
+
+		echo "[info] Checking endpoint '${vpn_remote_server}' is port forward enabled..."
 
 		# pia api url for endpoint status (port forwarding enabled true|false)
 		pia_vpninfo_api="https://www.privateinternetaccess.com/vpninfo/servers?version=82"
@@ -44,16 +47,16 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 			# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
 			# grep -w = exact match (whole word), grep -q = quiet mode (no output)
-			echo "${jq_query_details}" | grep -qw "${VPN_REMOTE}"
+			echo "${jq_query_details}" | grep -qw "${vpn_remote_server}"
 
 			if [[ "${?}" != 0 ]]; then
 
-				echo "[warn] PIA endpoint '${VPN_REMOTE}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
+				echo "[warn] PIA endpoint '${vpn_remote_server}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
 				echo "[info] Please consider switching to one of the endpoints shown below"
 
 			else
 
-				echo "[info] PIA endpoint '${VPN_REMOTE}' is in the list of endpoints that support port forwarding"
+				echo "[info] PIA endpoint '${vpn_remote_server}' is in the list of endpoints that support port forwarding"
 
 			fi
 

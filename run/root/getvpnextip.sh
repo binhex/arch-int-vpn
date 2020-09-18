@@ -158,7 +158,6 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; t
 
 		echo "[warn] Cannot determine external IP address, performing tests before setting to '127.0.0.1'..."
 		echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
-		echo "[info] Show name resolution for VPN endpoint ${VPN_REMOTE}" ; drill -a -I ${vpn_ip} -4 "${VPN_REMOTE}"
 		echo "[info] Show contents of hosts file" ; cat /etc/hosts
 
 		# write external ip address to text file, this is then read by the downloader script
