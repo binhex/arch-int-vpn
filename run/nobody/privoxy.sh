@@ -23,7 +23,8 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 		/usr/bin/privoxy /config/privoxy/config
 
 		# make sure process privoxy DOES exist
-		retry_count=30
+		retry_count=12
+		retry_wait=1
 		while true; do
 
 			if ! pgrep -x "privoxy" > /dev/null; then
@@ -32,16 +33,17 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 				if [ "${retry_count}" -eq "0" ]; then
 
 					echo "[warn] Wait for Privoxy process to start aborted, too many retries"
-					echo "[warn] Showing output from command before exit..."
-					timeout 10 /usr/bin/privoxy /config/privoxy/config ; exit 1
+					echo "[info] Showing output from command before exit..."
+					timeout 10 /usr/bin/privoxy /config/privoxy/config ; return 1
 
 				else
 
 					if [[ "${DEBUG}" == "true" ]]; then
-						echo "[debug] Waiting for Privoxy process to start..."
+						echo "[debug] Waiting for Privoxy process to start"
+						echo "[debug] Re-check in ${retry_wait} secs..."
+						echo "[debug] ${retry_count} retries left"
 					fi
-
-					sleep 1s
+					sleep "${retry_wait}s"
 
 				fi
 
