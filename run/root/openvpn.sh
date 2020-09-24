@@ -15,7 +15,7 @@ function create_openvpn_cli() {
 	if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		# add pia specific flags
-		openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD '${STRICT_PORT_FORWARD}' --disable-occ"
+		openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD '${STRICT_PORT_FORWARD}' --setenv VPN_USER '${VPN_USER}' --setenv VPN_PASS '${VPN_PASS}' --disable-occ"
 
 	fi
 
