@@ -8,7 +8,7 @@ function port_forward_status() {
 	echo "[info] Checking endpoint '${vpn_remote_server}' is port forward enabled..."
 
 	# run curl to grab api result
-	jq_query_result=$(curl --interface "${VPN_DEVICE_TYPE}" -s --insecure "${pia_vpninfo_api}")
+	jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
 
 	if [[ "${?}" != 0 ]]; then
 
@@ -62,7 +62,7 @@ function get_incoming_port_legacy() {
 	client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
 
 	# run curly to grab api result
-	pia_vpnport_api_result=$(curl --interface "${VPN_DEVICE_TYPE}" -s --insecure "${pia_vpnport_api}/?client_id=${client_id}")
+	pia_vpnport_api_result=$(curl --silent --insecure "${pia_vpnport_api}/?client_id=${client_id}")
 
 	if [[ "${?}" != 0 ]]; then
 
@@ -116,7 +116,7 @@ function get_incoming_port_nextgen() {
 			fi
 
 			# download json data
-			jq_query_result=$(curl --interface "${VPN_DEVICE_TYPE}" -s --insecure "${pia_vpninfo_api}")
+			jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
 
 			if [ "${?}" -ne 0 ]; then
 
@@ -144,15 +144,22 @@ function get_incoming_port_nextgen() {
 
 			fi
 
+			# note use of 10.0.0.1 is only AFTER vpn is established, otherwise you need to get the meta ip using the code below:-
+
+			# <snip>
 			# get metadata server ip address
-			vpn_remote_metadata_server_ip=$(echo "${jq_query_result}" | jq -r "${jq_query_metadata_ip}")
+			#vpn_remote_metadata_server_ip=$(echo "${jq_query_result}" | jq -r "${jq_query_metadata_ip}")
 
 			# get token json response
-			token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" -s --insecure -u "${VPN_USER}:${VPN_PASS}" "https://${vpn_remote_metadata_server_ip}/authv3/generateToken")
+			#token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://${vpn_remote_metadata_server_ip}/authv3/generateToken")
+			# </snip>
+
+			# get token json response
+			token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://10.0.0.1/authv3/generateToken")
 
 			if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
-				echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://${vpn_remote_metadata_server_ip}/authv3/generateToken'"
+				echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://10.0.0.1/authv3/generateToken'"
 				echo "[info] ${retry_count} retries left"
 				echo "[info] Retrying in ${retry_wait_secs} secs..."
 				retry_count=$((retry_count-1))
@@ -180,7 +187,8 @@ function get_incoming_port_nextgen() {
 			token=$(echo "${token_json_response}" | jq -r '.token')
 
 			# get payload and signature
-			payload_and_sig=$(curl --interface "${VPN_DEVICE_TYPE}" -s --insecure "https://${vpn_gateway_ip}:19999/getSignature?token=${token}")
+			# note use of urlencode, this is required, otherwise login failure can occur
+			payload_and_sig=$(curl --insecure --silent --max-time 5 --get --data-urlencode "token=${token}" "https://${vpn_gateway_ip}:19999/getSignature")
 
 			if [ "$(echo "${payload_and_sig}" | jq -r '.status')" != "OK" ]; then
 
@@ -309,7 +317,8 @@ function bind_incoming_port_nextgen() {
 
 		fi
 
-		bind_port=$(curl -sGk --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${vpn_gateway_ip}:19999/bindPort")
+		# note use of urlencode, this is required, otherwise login failure can occur
+		bind_port=$(curl --insecure --silent --max-time 5 --get --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${vpn_gateway_ip}:19999/bindPort")
 
 		if [ "$(echo "${bind_port}" | jq -r '.status')" != "OK" ]; then
 
