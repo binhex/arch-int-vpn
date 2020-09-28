@@ -95,8 +95,6 @@ function get_incoming_port_legacy() {
 }
 
 # attempt to get incoming port (pia only)
-# note subsequent re-runs of this MAY result in 'login failed', which is a generic error,
-# it could mean unable to contact server or that the port has already been allocated.
 function get_incoming_port_nextgen() {
 
 	retry_count=12
