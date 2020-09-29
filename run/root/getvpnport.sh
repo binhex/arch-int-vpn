@@ -113,46 +113,20 @@ function get_incoming_port_nextgen() {
 
 			fi
 
-			# download json data
-			jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
-
-			if [ "${?}" -ne 0 ]; then
-
-				echo "[warn] Unable to download PIA json data from URL '${pia_vpninfo_api}'"
-				retry_count=$((retry_count-1))
-				echo "[info] ${retry_count} retries left"
-				echo "[info] Retrying in ${retry_wait_secs} secs..."
-				sleep "${retry_wait_secs}"s
-
-			else
-
-				# reset retry count on successful step
-				retry_count=12
-				break
-
-			fi
-
-		done
-
-		while true; do
-
-			if [ "${retry_count}" -eq "0" ]; then
-
-				kill_openvpn
-
-			fi
-
 			# note use of 10.0.0.1 is only AFTER vpn is established, otherwise you need to get the meta ip using the code below:-
 
 			# <snip>
+			# download json data
+			#jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
+
 			# get metadata server ip address
 			#vpn_remote_metadata_server_ip=$(echo "${jq_query_result}" | jq -r "${jq_query_metadata_ip}")
 
-			# get token json response
+			# get token json response BEFORE vpn established
 			#token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://${vpn_remote_metadata_server_ip}/authv3/generateToken")
 			# </snip>
 
-			# get token json response
+			# get token json response AFTER vpn established
 			token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://10.0.0.1/authv3/generateToken")
 
 			if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
