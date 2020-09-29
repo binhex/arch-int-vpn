@@ -17,7 +17,7 @@ function port_forward_status() {
 	else
 
 		# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
-		jq_query_details=$(echo "${jq_query_result}" | jq -r "${jq_query_portforward_enabled}" | xargs 2> /dev/null)
+		jq_query_details=$(echo "${jq_query_result}" | jq -r "${jq_query_portforward_enabled}" 2> /dev/null | xargs)
 
 		# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
 		# grep -w = exact match (whole word), grep -q = quiet mode (no output)
