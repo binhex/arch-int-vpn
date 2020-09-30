@@ -113,7 +113,7 @@ function get_incoming_port_nextgen() {
 
 			fi
 
-			# note use of 10.0.0.1 is only AFTER vpn is established, otherwise you need to get the meta ip using the code below:-
+			# note use of 10.0.0.1 is only AFTER vpn is established, if BEFORE vpn established then you need to get the meta ip using the code below:-
 
 			# <snip>
 			# download json data
@@ -127,7 +127,9 @@ function get_incoming_port_nextgen() {
 			# </snip>
 
 			# get token json response AFTER vpn established
-			token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://10.0.0.1/authv3/generateToken")
+			# note binding to the vpn interface (using --interface flag for curl) is required
+			# due to users potentially using the 10.x.x.x range for lan, causing failure
+			token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://10.0.0.1/authv3/generateToken")
 
 			if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
