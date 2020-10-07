@@ -5,7 +5,7 @@ function port_forward_status() {
 
 	echo "[info] Port forwarding is enabled"
 
-	echo "[info] Checking endpoint '${vpn_remote_server}' is port forward enabled..."
+	echo "[info] Checking endpoint '${VPN_REMOTE_SERVER}' is port forward enabled..."
 
 	# run curl to grab api result
 	jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
@@ -21,16 +21,16 @@ function port_forward_status() {
 
 		# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
 		# grep -w = exact match (whole word), grep -q = quiet mode (no output)
-		echo "${jq_query_details}" | grep -qw "${vpn_remote_server}"
+		echo "${jq_query_details}" | grep -qw "${VPN_REMOTE_SERVER}"
 
 		if [[ "${?}" != 0 ]]; then
 
-			echo "[warn] PIA endpoint '${vpn_remote_server}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
+			echo "[warn] PIA endpoint '${VPN_REMOTE_SERVER}' is not in the list of endpoints that support port forwarding, DL/UL speeds maybe slow"
 			echo "[info] Please consider switching to one of the endpoints shown below"
 
 		else
 
-			echo "[info] PIA endpoint '${vpn_remote_server}' is in the list of endpoints that support port forwarding"
+			echo "[info] PIA endpoint '${VPN_REMOTE_SERVER}' is in the list of endpoints that support port forwarding"
 
 		fi
 
@@ -66,9 +66,8 @@ function get_incoming_port_legacy() {
 
 	if [[ "${?}" != 0 ]]; then
 
-		echo "[warn] PIA VPN port assignment API currently down, terminating OpenVPN process to force retry for incoming port..."
-		kill -2 $(cat /root/openvpn.pid)
-		return 1
+		echo "[warn] Unable to download json for dynamically assigned port, exiting script..."
+		trigger_failure ; return 1
 
 	else
 
@@ -83,7 +82,8 @@ function get_incoming_port_legacy() {
 
 		else
 
-			kill_openvpn
+			echo "[warn] Unable to parse json for dynamically assigned port, exiting script..."
+			trigger_failure ; return 1
 
 		fi
 
@@ -109,22 +109,10 @@ function get_incoming_port_nextgen() {
 
 			if [ "${retry_count}" -eq "0" ]; then
 
-				kill_openvpn
+				echo "[warn] Unable to download PIA json to generate token, exiting script..."
+				trigger_failure ; return 1
 
 			fi
-
-			# note use of 10.0.0.1 is only AFTER vpn is established, if BEFORE vpn established then you need to get the meta ip using the code below:-
-
-			# <snip>
-			# download json data
-			#jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
-
-			# get metadata server ip address
-			#vpn_remote_metadata_server_ip=$(echo "${jq_query_result}" | jq -r "${jq_query_metadata_ip}")
-
-			# get token json response BEFORE vpn established
-			#token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://${vpn_remote_metadata_server_ip}/authv3/generateToken")
-			# </snip>
 
 			# get token json response AFTER vpn established
 			# note binding to the vpn interface (using --interface flag for curl) is required
@@ -137,7 +125,7 @@ function get_incoming_port_nextgen() {
 				echo "[info] ${retry_count} retries left"
 				echo "[info] Retrying in ${retry_wait_secs} secs..."
 				retry_count=$((retry_count-1))
-				sleep "${retry_wait_secs}"s
+				sleep "${retry_wait_secs}"s & wait $!
 
 			else
 
@@ -153,7 +141,8 @@ function get_incoming_port_nextgen() {
 
 			if [ "${retry_count}" -eq "0" ]; then
 
-				kill_openvpn
+				echo "[warn] Unable to download PIA json payload, exiting script..."
+				trigger_failure ; return 1
 
 			fi
 
@@ -166,11 +155,11 @@ function get_incoming_port_nextgen() {
 
 			if [ "$(echo "${payload_and_sig}" | jq -r '.status')" != "OK" ]; then
 
-				echo "[warn] Unable to successfully download PIA json payload from URL 'https://${vpn_gateway_ip}:19999/getSignature?token=${token}'"
+				echo "[warn] Unable to successfully download PIA json payload from URL 'https://${vpn_gateway_ip}:19999/getSignature' using token '${token}'"
 				echo "[info] ${retry_count} retries left"
 				echo "[info] Retrying in ${retry_wait_secs} secs..."
 				retry_count=$((retry_count-1))
-				sleep "${retry_wait_secs}"s
+				sleep "${retry_wait_secs}"s & wait $!
 
 			else
 
@@ -185,76 +174,42 @@ function get_incoming_port_nextgen() {
 		payload=$(echo "${payload_and_sig}" | jq -r '.payload')
 		signature=$(echo "${payload_and_sig}" | jq -r '.signature')
 
-		while true; do
+		# decode payload to get token, port, and expires date (2 months)
+		payload_decoded=$(echo "${payload}" | base64 -d | jq)
 
-			if [ "${retry_count}" -eq "0" ]; then
+		if [ "${?}" -eq 0 ]; then
 
-				kill_openvpn
+			token=$(echo "${payload_decoded}" | jq -r '.token')
+			port=$(echo "${payload_decoded}" | jq -r '.port')
+			# note expires_at time in this format'2020-11-24T22:12:07.627551124Z'
+			expires_at=$(echo "${payload_decoded}" | jq -r '.expires_at')
 
-			fi
+			if [[ "${DEBUG}" == "true" ]]; then
 
-			# decode payload to get token, port, and expires date (2 months)
-			payload_decoded=$(echo "${payload}" | base64 -d | jq)
-
-			if [ "${?}" -ne 0 ]; then
-
-				echo "[warn] Unable to decode payload '${payload}'"
-				echo "[info] ${retry_count} retries left"
-				echo "[info] Retrying in ${retry_wait_secs} secs..."
-				retry_count=$((retry_count-1))
-				sleep "${retry_wait_secs}"s
-
-			else
-
-				# reset retry count on successful step
-				retry_count=12
-				break
+				echo "[debug] Token is '${token}'"
+				echo "[debug] Port allocated is '${port}'"
+				echo "[debug] Port expires at '${expires_at}'"
 
 			fi
 
-		done
+		else
 
-		token=$(echo "${payload_decoded}" | jq -r '.token')
-		port=$(echo "${payload_decoded}" | jq -r '.port')
-		# note expires_at time in this format'2020-11-24T22:12:07.627551124Z'
-		expires_at=$(echo "${payload_decoded}" | jq -r '.expires_at')
-
-		if [[ "${DEBUG}" == "true" ]]; then
-
-			echo "[debug] Token is '${token}'"
-			echo "[debug] Port allocated is '${port}'"
-			echo "[debug] Port expires at '${expires_at}'"
+			echo "[warn] Unable to decode payload, exiting script..."
+			trigger_failure ; return 1
 
 		fi
 
-		while true; do
+		if [[ "${port}" =~ ^-?[0-9]+$ ]]; then
 
-			if [ "${retry_count}" -eq "0" ]; then
+			# write port number to text file (read by downloader script)
+			echo "${port}" > /tmp/getvpnport
 
-				kill_openvpn
+		else
 
-			fi
+			echo "[warn] Incoming port assigned is not a decimal value '${port}', exiting script..."
+			trigger_failure ; return 1
 
-			if [[ "${port}" =~ ^-?[0-9]+$ ]]; then
-
-				# write port number to text file (read by downloader script)
-				echo "${port}" > /tmp/getvpnport
-
-				# reset retry count on successful step
-				retry_count=12
-				break
-
-			else
-
-				echo "[warn] Unable to decode payload '${payload}'"
-				echo "[info] ${retry_count} retries left"
-				echo "[info] Retrying in ${retry_wait_secs} secs..."
-				retry_count=$((retry_count-1))
-				sleep "${retry_wait_secs}"s
-
-			fi
-
-		done
+		fi
 
 		# run function to bind port every 15 minutes (background)
 		bind_incoming_port_nextgen &
@@ -269,7 +224,7 @@ function get_incoming_port_nextgen() {
 		expires_at_delta=$(( (expires_at_convert_epoch - current_datetime_epoch) ))
 
 		# sleep for time difference
-		sleep "${expires_at_delta}"s
+		sleep "${expires_at_delta}"s & wait $!
 
 	done
 
@@ -278,6 +233,10 @@ function get_incoming_port_nextgen() {
 # attempt to bind incoming port (pia only)
 function bind_incoming_port_nextgen() {
 
+	# run function to set trap so we exit cleanly when kill issued
+	# due to this function running in background we need to set trap here as well as main
+	set_trap
+
 	retry_count=12
 	retry_wait_secs=10
 
@@ -285,9 +244,8 @@ function bind_incoming_port_nextgen() {
 
 		if [ "${retry_count}" -eq "0" ]; then
 
-			echo "[warn] Attempting to bind port failed, kill openvpn process to force retry of incoming port"
-			kill -2 $(cat /root/openvpn.pid)
-			return 1
+			echo "[warn] Unable to bind incoming port '${port}', exiting script..."
+			trigger_failure ; return 1
 
 		fi
 
@@ -300,7 +258,7 @@ function bind_incoming_port_nextgen() {
 			retry_count=$((retry_count-1))
 			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
-			sleep "${retry_wait_secs}"s
+			sleep "${retry_wait_secs}"s & wait $!
 			continue
 
 		else
@@ -313,18 +271,27 @@ function bind_incoming_port_nextgen() {
 		echo "[info] Successfully assigned and bound incoming port '${port}'"
 
 		# re-issue of bind required every 15 minutes
-		sleep 15m
+		sleep 15m & wait $!
 
 	done
 
 }
 
-function kill_openvpn() {
+function trigger_failure() {
 
-	echo "[warn] Attempting to allocate port failed, kill openvpn process to force retry of incoming port"
-	kill -2 $(cat /root/openvpn.pid)
-	# exit 1 required to stop infinite while loops, do not change to return 1
-	exit 1
+	echo "[info] Port forwarding failure, creating file '/tmp/portfailure' to indicate failure..."
+	touch "/tmp/portfailure"
+	chmod +r "/tmp/portfailure"
+
+}
+
+function set_trap() {
+
+	# trap kill signal INT (-2), TERM (-15) or EXIT (internal bash).
+	# kill all child processes, break while loops and exit with exit code 1
+	# required to allow us to stop this script as it has several sleep
+	# commands and background function
+	trap 'kill $(jobs -p); break; exit 1' INT TERM EXIT
 
 }
 
@@ -340,8 +307,16 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 
 	else
 
+		echo "[info] Script started to assign incoming port"
+
+		# write pid of this script to file, this file is then used to kill this script if openvpn/wireguard restarted/killed
+		echo "${BASHPID}" > '/tmp/getvpnport.pid'
+
+		# run function to set trap so we exit cleanly when kill issued
+		set_trap
+
 		# run legacy or next-gen scripts (depending on remote server hostname)
-		if [[ "${vpn_remote_server}" == *"privacy.network"* ]]; then
+		if [[ "${VPN_REMOTE_SERVER}" == *"privacy.network"* ]]; then
 
 			# pia api url for endpoint status (port forwarding enabled true|false)
 			pia_vpninfo_api="https://serverlist.piaservers.net/vpninfo/servers/v4"
@@ -350,7 +325,7 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 			jq_query_portforward_enabled='.regions | .[] | select(.port_forward=='true') | .dns'
 
 			# jq (json query tool) query to select current vpn remote server (from ovpn file) and then get metadata server ip address
-			jq_query_metadata_ip=".regions | .[] | select(.dns|tostring | contains(\"${vpn_remote_server}\")) | .servers | .meta | .[] | .ip"
+			jq_query_metadata_ip=".regions | .[] | select(.dns|tostring | contains(\"${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
 
 			port_forward_status
 			get_incoming_port_nextgen
@@ -367,6 +342,8 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 			get_incoming_port_legacy
 
 		fi
+
+		echo "[info] Script finished to assign incoming port"
 
 	fi
 

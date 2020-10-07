@@ -11,79 +11,83 @@ else
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Environment variables defined as follows" ; set
-		echo "[debug] Directory listing of files in /config/openvpn as follows" ; ls -al /config/openvpn
+		if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
+			echo "[debug] Directory listing of files in /config/openvpn/ as follows" ; ls -al '/config/openvpn'
+		else
+			echo "[debug] Directory listing of files in /config/wireguard/ as follows" ; ls -al '/config/wireguard'
+		fi
 	fi
 
-	# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
-	if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
+	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
-		# store credentials in separate file for authentication
-		if ! $(grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"); then
-			sed -i -e 's/auth-user-pass.*/auth-user-pass credentials.conf/g' "${VPN_CONFIG}"
+		# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
+		if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
+
+			# store credentials in separate file for authentication
+			if ! $(grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"); then
+				sed -i -e 's/auth-user-pass.*/auth-user-pass credentials.conf/g' "${VPN_CONFIG}"
+			fi
+
+			echo "${VPN_USER}" > /config/openvpn/credentials.conf
+
+			username_char_check=$(echo "${VPN_USER}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
+
+			if [[ ! -z "${username_char_check}" ]]; then
+				echo "[warn] Username contains characters which could cause authentication issues, please consider changing this if possible"
+			fi
+
+			echo "${VPN_PASS}" >> /config/openvpn/credentials.conf
+
+			password_char_check=$(echo "${VPN_PASS}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
+
+			if [[ ! -z "${password_char_check}" ]]; then
+				echo "[warn] Password contains characters which could cause authentication issues, please consider changing this if possible"
+			fi
+
 		fi
 
-		echo "${VPN_USER}" > /config/openvpn/credentials.conf
+		# note - do not remove redirection of gateway for ipv6 - required for certain vpn providers (airvpn)
 
-		username_char_check=$(echo "${VPN_USER}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
+		# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
+		sed -i '/^persist-tun/d' "${VPN_CONFIG}"
 
-		if [[ ! -z "${username_char_check}" ]]; then
-			echo "[warn] Username contains characters which could cause authentication issues, please consider changing this if possible"
+		# remove reneg-sec from ovpn file if present, this is removed to prevent re-checks and dropouts
+		sed -i '/^reneg-sec.*/d' "${VPN_CONFIG}"
+
+		# remove up script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
+		sed -i '/^up\s.*/d' "${VPN_CONFIG}"
+
+		# remove down script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
+		sed -i '/^down\s.*/d' "${VPN_CONFIG}"
+
+		# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
+		sed -i '/^route-ipv6/d' "${VPN_CONFIG}"
+
+		# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
+		sed -i '/^ifconfig-ipv6/d' "${VPN_CONFIG}"
+
+		# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
+		sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
+
+		# remove dhcp option for dns ipv6 configuration from ovpn file if present (dns defined via name_server env var value)
+		sed -i '/^dhcp-option DNS6.*/d' "${VPN_CONFIG}"
+
+		# remove windows specific openvpn options
+		sed -i '/^route-method exe/d' "${VPN_CONFIG}"
+		sed -i '/^service\s.*/d' "${VPN_CONFIG}"
+		sed -i '/^block-outside-dns/d' "${VPN_CONFIG}"
+
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
 		fi
 
-		echo "${VPN_PASS}" >> /config/openvpn/credentials.conf
+		# assign any matching ping options in ovpn file to variable (used to decide whether to specify --keealive option in openvpn.sh)
+		vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
 
-		password_char_check=$(echo "${VPN_PASS}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
-
-		if [[ ! -z "${password_char_check}" ]]; then
-			echo "[warn] Password contains characters which could cause authentication issues, please consider changing this if possible"
-		fi
+		# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
+		sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
 
 	fi
-
-	# note - do not remove redirection of gateway for ipv6 - required for certain vpn providers (airvpn)
-
-	# remove persist-tun from ovpn file if present, this allows reconnection to tunnel on disconnect
-	sed -i '/^persist-tun/d' "${VPN_CONFIG}"
-
-	# remove reneg-sec from ovpn file if present, this is removed to prevent re-checks and dropouts
-	sed -i '/^reneg-sec.*/d' "${VPN_CONFIG}"
-
-	# remove up script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
-	sed -i '/^up\s.*/d' "${VPN_CONFIG}"
-
-	# remove down script from ovpn file if present, this is removed as we do not want any other up/down scripts to run
-	sed -i '/^down\s.*/d' "${VPN_CONFIG}"
-
-	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
-	sed -i '/^route-ipv6/d' "${VPN_CONFIG}"
-
-	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
-	sed -i '/^ifconfig-ipv6/d' "${VPN_CONFIG}"
-
-	# remove ipv6 configuration from ovpn file if present (iptables not configured to support ipv6)
-	sed -i '/^tun-ipv6/d' "${VPN_CONFIG}"
-
-	# remove dhcp option for dns ipv6 configuration from ovpn file if present (dns defined via name_server env var value)
-	sed -i '/^dhcp-option DNS6.*/d' "${VPN_CONFIG}"
-
-	# remove windows specific openvpn options
-	sed -i '/^route-method exe/d' "${VPN_CONFIG}"
-	sed -i '/^service\s.*/d' "${VPN_CONFIG}"
-	sed -i '/^block-outside-dns/d' "${VPN_CONFIG}"
-
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Contents of ovpn file ${VPN_CONFIG} as follows..." ; cat "${VPN_CONFIG}"
-	fi
-
-	# assign any matching ping options in ovpn file to variable (used to decide whether to specify --keealive option in openvpn.sh)
-	vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
-
-	# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
-	sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
-
-	# get ip for local gateway (eth0)
-	DEFAULT_GATEWAY=$(ip route show default | awk '/default/ {print $3}')
-	echo "[info] Default route for container is ${DEFAULT_GATEWAY}"
 
 	# split comma separated string into list from NAME_SERVERS env variable
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
@@ -125,6 +129,7 @@ else
 
 				fi
 
+				# resolve hostname to ip address(es)
 				vpn_remote_item_dns_answer=$(drill -a -4 "${vpn_remote_server}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
 				# check answer is not blank, if it is blank assume bad ns
@@ -172,32 +177,36 @@ else
 	# export all resolved vpn remote ip's - used in sourced openvpn.sh
 	export VPN_REMOTE_IP="${vpn_remote_ip}"
 
-	# check if we have tun module available
-	check_tun_available=$(lsmod | grep tun)
+	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
-	# if tun module not available then try installing it
-	if [[ -z "${check_tun_available}" ]]; then
-		echo "[info] Attempting to load tun kernel module..."
-		/sbin/modprobe tun
-		tun_module_exit_code=$?
-		if [[ $tun_module_exit_code != 0 ]]; then
-			echo "[warn] Unable to load tun kernel module using modprobe, trying insmod..."
-			insmod /lib/modules/tun.ko
+		# check if we have tun module available
+		check_tun_available=$(lsmod | grep tun)
+
+		# if tun module not available then try installing it
+		if [[ -z "${check_tun_available}" ]]; then
+			echo "[info] Attempting to load tun kernel module..."
+			/sbin/modprobe tun
 			tun_module_exit_code=$?
 			if [[ $tun_module_exit_code != 0 ]]; then
-				echo "[warn] Unable to load tun kernel module, assuming its dynamically loaded"
+				echo "[warn] Unable to load tun kernel module using modprobe, trying insmod..."
+				insmod /lib/modules/tun.ko
+				tun_module_exit_code=$?
+				if [[ $tun_module_exit_code != 0 ]]; then
+					echo "[warn] Unable to load tun kernel module, assuming its dynamically loaded"
+				fi
 			fi
 		fi
-	fi
 
-	# create the tunnel device if not present (unraid users do not require this step)
-	mkdir -p /dev/net
-	[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
-	tun_create_exit_code=$?
-	if [[ $tun_create_exit_code != 0 ]]; then
-		echo "[crit] Unable to create tun device, try adding docker container option '--device=/dev/net/tun'" ; exit 1
-	else
-		chmod 600 /dev/net/tun
+		# create the tunnel device if not present (unraid users do not require this step)
+		mkdir -p /dev/net
+		[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
+		tun_create_exit_code=$?
+		if [[ $tun_create_exit_code != 0 ]]; then
+			echo "[crit] Unable to create tun device, try adding docker container option '--device=/dev/net/tun'" ; exit 1
+		else
+			chmod 600 /dev/net/tun
+		fi
+
 	fi
 
 	# check if we have iptable_mangle module available
@@ -231,10 +240,16 @@ else
 		echo "[debug] Show contents of hosts file" ; cat /etc/hosts
 	fi
 
-	# setup ip tables and routing for application
-	source /root/iptable.sh
+	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
-	# start openvpn tunnel
-	source /root/openvpn.sh
+		# start openvpn client
+		source /root/openvpn.sh
+
+	elif [[ "${VPN_CLIENT}" == "wireguard" ]]; then
+
+		# start wireguard client
+		source /root/wireguard.sh
+
+	fi
 
 fi

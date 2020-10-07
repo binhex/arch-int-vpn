@@ -31,18 +31,30 @@ while ! check_valid_ip "${vpn_ip}"; do
 
 done
 
-# loop and wait until tunnel adapter gateway ip is valid
-vpn_gateway_ip=""
-while ! check_valid_ip "${vpn_gateway_ip}"; do
-
-	vpn_gateway_ip=$(ip route s t all | grep -m 1 "0.0.0.0/1 via .* dev ${VPN_DEVICE_TYPE}" | cut -d ' ' -f3)
-	sleep 1s
-
-done
-
 if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Valid local IP address from tunnel acquired '${vpn_ip}'"
-	echo "[debug] Valid gateway IP address from tunnel acquired '${vpn_gateway_ip}'"
+fi
+
+if [[ "${VPN_PROV}" == "pia" ]]; then
+
+	# if empty get gateway ip (openvpn clients), otherwise skip (defined in wireguard.sh)
+	if [[ -z "${vpn_gateway_ip}" ]]; then
+
+		# get gateway ip, used for openvpn and wireguard to get port forwarding working via getvpnport.sh
+		vpn_gateway_ip=""
+		while ! check_valid_ip "${vpn_gateway_ip}"; do
+
+			vpn_gateway_ip=$(ip route s t all | grep -m 1 "0.0.0.0/1 via .* dev ${VPN_DEVICE_TYPE}" | cut -d ' ' -f3)
+			sleep 1s
+
+		done
+
+	fi
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Valid gateway IP address from tunnel acquired '${vpn_gateway_ip}'"
+	fi
+
 fi
 
 echo "${vpn_ip}" > /tmp/getvpnip
