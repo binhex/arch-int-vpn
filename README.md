@@ -1,8 +1,8 @@
 **Application**
 
+[Privoxy](http://www.privoxy.org/)  
 [OpenVPN](https://openvpn.net/)  
-[WireGuard](https://www.wireguard.com/)  
-[Privoxy](http://www.privoxy.org/)
+[WireGuard](https://www.wireguard.com/)
 
 **Description**
 
