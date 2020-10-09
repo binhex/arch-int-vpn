@@ -9,15 +9,6 @@ else
 
 	echo "[info] VPN is enabled, beginning configuration of VPN"
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Environment variables defined as follows" ; set
-		if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
-			echo "[debug] Directory listing of files in /config/openvpn/ as follows" ; ls -al '/config/openvpn'
-		else
-			echo "[debug] Directory listing of files in /config/wireguard/ as follows" ; ls -al '/config/wireguard'
-		fi
-	fi
-
 	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
 		# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
@@ -86,6 +77,29 @@ else
 
 		# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
 		sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
+
+	fi
+
+	if [[ "${DEBUG}" == "true" ]]; then
+
+		echo "[debug] Environment variables defined as follows" ; set
+
+		if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
+
+			echo "[debug] Directory listing of files in /config/openvpn/ as follows" ; ls -al '/config/openvpn'
+			echo "[debug] Contents of OpenVPN config file '${VPN_CONFIG}' as follows..." ; cat "${VPN_CONFIG}"
+
+		else
+
+			echo "[debug] Directory listing of files in /config/wireguard/ as follows" ; ls -al '/config/wireguard'
+
+			if [ -f "${VPN_CONFIG}" ]; then
+				echo "[debug] Contents of WireGuard config file '${VPN_CONFIG}' as follows..." ; cat "${VPN_CONFIG}"
+			else
+				echo "[debug] File path '${VPN_CONFIG}' does not exist, skipping displaying file content"
+			fi
+
+		fi
 
 	fi
 
