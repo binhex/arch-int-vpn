@@ -95,8 +95,14 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		export PIA_VPNINFO_API=$(curl --silent "${pia_vpninfo_api_url}")
 
 		if [[ -z "${PIA_VPNINFO_API}" ]]; then
-			echo "[crit] PIA VPN server info JSON cannot be downloaded from URL '${pia_vpninfo_api_url}' exit code from curl is '${?}', exiting..." | ts '%Y-%m-%d %H:%M:%.S'
-			exit 1
+
+			if [[ "${VPN_CLIENT}" == "wireguard" ]]; then
+				echo "[crit] PIA VPN server info JSON cannot be downloaded from URL '${pia_vpninfo_api_url}' exit code from curl is '${?}', exiting..." | ts '%Y-%m-%d %H:%M:%.S'
+				exit 1
+			else
+				echo "[warn] PIA VPN server info JSON cannot be downloaded from URL '${pia_vpninfo_api_url}' exit code from curl is '${?}'" | ts '%Y-%m-%d %H:%M:%.S'
+			fi
+
 		fi
 
 	fi
