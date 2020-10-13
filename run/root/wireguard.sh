@@ -142,6 +142,16 @@ function watchdog() {
 
 }
 
+function edit_wireguard() {
+
+	# removes all ipv6 address and port from wireguard config
+	sed -r -i -e 's/,?[a-z0-9]{4}::?[^,]+,?//g' "${VPN_CONFIG}"
+
+	# removes all ipv6 port only from wireguard config
+	sed -r -i -e 's/,?::[^,]+,?//g' "${VPN_CONFIG}"
+
+}
+
 function up_wireguard() {
 
 	echo "[info] Attempting to bring WireGuard interface 'up'..."
@@ -172,6 +182,12 @@ function start_wireguard() {
 		pia_wireguard_authenticate
 		pia_get_wireguard_config
 		pia_create_wireguard_config_file
+
+	else
+
+		# edit wireguard config to remove ipv6, required for mullvad and possibly other non pia 
+		# vpn providers
+		edit_wireguard
 
 	fi
 
