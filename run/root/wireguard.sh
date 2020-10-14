@@ -144,6 +144,12 @@ function watchdog() {
 
 function edit_wireguard() {
 
+	# delete any existing PostUp/PostDown scripts (cannot easily edit and replace lines without insertion)
+	sed -i -r '/.*PostUp = .*|.*PostDown = .*/d' "${VPN_CONFIG}"
+
+	# insert PostUp/PostDown script lines after [Interface]
+	sed -i -e "/\[Interface\]/a PostUp = '/root/wireguardup.sh'\nPostDown = '/root/wireguarddown.sh'" "${VPN_CONFIG}"
+
 	# removes all ipv6 address and port from wireguard config
 	sed -r -i -e 's/,?[a-z0-9]{4}::?[^,]+,?//g' "${VPN_CONFIG}"
 
