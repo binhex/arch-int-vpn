@@ -136,6 +136,15 @@ function watchdog() {
 
 		fi
 
+		# check if wireguard 'peer' exists, if not assume wireguard connection is down and bring up
+		wg show | grep --quiet 'peer'
+		if [ "${?}"  -ne 0 ]; then
+
+			# run wireguard, will run as daemon background process
+			up_wireguard
+
+		fi
+
 		sleep 30s
 
 	done
@@ -200,24 +209,8 @@ function start_wireguard() {
 	# setup ip tables and routing for application
 	source /root/iptable.sh
 
-	# start background watchdog function
-	watchdog &
-
-	# loop and monitor wireguard process
-	while true; do
-
-		# check if wireguard 'peer' exists, if so assume wireguard connection is up
-		wg show | grep --quiet 'peer'
-		if [ "${?}"  -ne 0 ]; then
-
-			# run wireguard, will run as daemon background process
-			up_wireguard
-
-		fi
-
-		sleep 30s
-
-	done
+	# start watchdog function
+	watchdog
 
 }
 
