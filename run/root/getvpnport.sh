@@ -49,52 +49,6 @@ function port_forward_status() {
 }
 
 # attempt to get incoming port (pia only)
-function get_incoming_port_legacy() {
-
-	echo "[info] Attempting to get dynamically assigned port..."
-
-	# pia api url for getting dynamically assigned port number
-	pia_vpnport_api_host="209.222.18.222"
-	pia_vpnport_api_port="2000"
-	pia_vpnport_api="http://${pia_vpnport_api_host}:${pia_vpnport_api_port}"
-
-	# create pia client id (randomly generated)
-	client_id=$(head -n 100 /dev/urandom | sha256sum | tr -d " -")
-
-	# run curly to grab api result
-	pia_vpnport_api_result=$(curl --silent --insecure "${pia_vpnport_api}/?client_id=${client_id}")
-
-	if [[ "${?}" != 0 ]]; then
-
-		echo "[warn] Unable to download json for dynamically assigned port, exiting script..."
-		trigger_failure ; return 1
-
-	else
-
-		VPN_INCOMING_PORT=$(echo "${pia_vpnport_api_result}" | jq -r '.port')
-
-		if [[ "${VPN_INCOMING_PORT}" =~ ^-?[0-9]+$ ]]; then
-
-			echo "[info] Successfully assigned incoming port ${VPN_INCOMING_PORT}"
-
-			# write port number to text file (read by downloader script)
-			echo "${VPN_INCOMING_PORT}" > /tmp/getvpnport
-
-		else
-
-			echo "[warn] Unable to parse json for dynamically assigned port, exiting script..."
-			trigger_failure ; return 1
-
-		fi
-
-	fi
-
-	# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-	chmod +r /tmp/getvpnport
-
-}
-
-# attempt to get incoming port (pia only)
 function get_incoming_port_nextgen() {
 
 	retry_count=12
@@ -315,33 +269,17 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		# run function to set trap so we exit cleanly when kill issued
 		set_trap
 
-		# run legacy or next-gen scripts (depending on remote server hostname)
-		if [[ "${VPN_REMOTE_SERVER}" == *"privacy.network"* ]]; then
+		# pia api url for endpoint status (port forwarding enabled true|false)
+		pia_vpninfo_api="https://serverlist.piaservers.net/vpninfo/servers/v4"
 
-			# pia api url for endpoint status (port forwarding enabled true|false)
-			pia_vpninfo_api="https://serverlist.piaservers.net/vpninfo/servers/v4"
+		# jq (json query tool) query to list port forward enabled servers by hostname (dns)
+		jq_query_portforward_enabled='.regions | .[] | select(.port_forward=='true') | .dns'
 
-			# jq (json query tool) query to list port forward enabled servers by hostname (dns)
-			jq_query_portforward_enabled='.regions | .[] | select(.port_forward=='true') | .dns'
+		# jq (json query tool) query to select current vpn remote server (from ovpn file) and then get metadata server ip address
+		jq_query_metadata_ip=".regions | .[] | select(.dns|tostring | contains(\"${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
 
-			# jq (json query tool) query to select current vpn remote server (from ovpn file) and then get metadata server ip address
-			jq_query_metadata_ip=".regions | .[] | select(.dns|tostring | contains(\"${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
-
-			port_forward_status
-			get_incoming_port_nextgen
-
-		else
-
-			# pia api url for endpoint status (port forwarding enabled true|false)
-			pia_vpninfo_api="https://www.privateinternetaccess.com/vpninfo/servers?version=82"
-
-			# jq (json query tool) query to select port forward and filter based only on port forward being enabled (true)
-			jq_query_portforward_enabled='.[] | select(.port_forward|tostring | contains("true")) | .dns'
-
-			port_forward_status
-			get_incoming_port_legacy
-
-		fi
+		port_forward_status
+		get_incoming_port_nextgen
 
 		echo "[info] Script finished to assign incoming port"
 

@@ -256,6 +256,12 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 		if [[ -n "${vpn_remote_line}" ]]; then
 
+			# if remote servers are legacy then log issue and exit
+			if [[ "${vpn_remote_line}" == *"privateinternetaccess.com"* ]]; then
+				echo "[crit] VPN configuration file '${VPN_CONFIG}' 'remote' line is referencing PIA legacy network which is now shutdown, see Q19. from the following link on how to switch to PIA 'next-gen':- https://github.com/binhex/documentation/blob/master/docker/faq/vpn.md exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
+				exit 1
+			fi
+
 			# split comma separated string into list from vpn_remote_line variable
 			IFS=',' read -ra vpn_remote_line_list <<< "${vpn_remote_line}"
 
