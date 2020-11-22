@@ -13,3 +13,6 @@ notes.txt
 
 # ignore virtual env
 venv
+
+# ignore VIM swap files
+.swp
