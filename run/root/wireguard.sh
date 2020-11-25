@@ -160,7 +160,7 @@ function edit_wireguard() {
 	sed -i -e "/\[Interface\]/a PostUp = '/root/wireguardup.sh'\nPostDown = '/root/wireguarddown.sh'" "${VPN_CONFIG}"
 
 	# removes all ipv6 address and port from wireguard config
-	sed -r -i -e 's/,?[a-z0-9]{4}::?[^,]+,?//g' "${VPN_CONFIG}"
+	sed -r -i -e 's/,?[a-f0-9]{4}::?[^,]+,?//g' "${VPN_CONFIG}"
 
 	# removes all ipv6 port only from wireguard config
 	sed -r -i -e 's/,?::[^,]+,?//g' "${VPN_CONFIG}"
