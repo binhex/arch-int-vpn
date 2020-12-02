@@ -16,7 +16,7 @@ function pia_generate_token() {
 	while true; do
 
 		# jq (json query tool) query to select current vpn remote server (from env var) and then get metadata server ip address
-		jq_query_metadata_ip=".regions | .[] | select(.dns|tostring | contains(\"${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
+		jq_query_metadata_ip=".regions | .[] | select(.dns | match(\"^${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
 
 		# get metadata server ip address
 		vpn_remote_metadata_server_ip=$(echo "${PIA_VPNINFO_API}" | jq -r "${jq_query_metadata_ip}")

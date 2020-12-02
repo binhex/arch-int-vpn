@@ -275,8 +275,8 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] &&
 		# jq (json query tool) query to list port forward enabled servers by hostname (dns)
 		jq_query_portforward_enabled='.regions | .[] | select(.port_forward=='true') | .dns'
 
-		# jq (json query tool) query to select current vpn remote server (from ovpn file) and then get metadata server ip address
-		jq_query_metadata_ip=".regions | .[] | select(.dns|tostring | contains(\"${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
+		# jq (json query tool) query to select current vpn remote server (from env var) and then get metadata server ip address
+		jq_query_metadata_ip=".regions | .[] | select(.dns | match(\"^${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
 
 		port_forward_status
 		get_incoming_port_nextgen
