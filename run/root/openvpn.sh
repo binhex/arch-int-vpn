@@ -44,14 +44,8 @@ function add_remote_server_ip() {
 	# check answer is not blank, generated in start.sh, if it is blank assume bad ns or vpn remote is an ip address
 	if [[ ! -z "${VPN_REMOTE_IP}" ]]; then
 
-		# leaving this in for now, we probably do not require this - remove if still redundant
-		#vpn_remote_ip_remove_commas=$(echo "${VPN_REMOTE_IP}" | sed 's~,~ ~g')
-
-		# split space separated string into array from VPN_REMOTE_IP
-		IFS=' ' read -ra vpn_remote_ip_list <<< "${VPN_REMOTE_IP}"
-
 		# iterate through list of ip addresses and add each ip as a --remote option to ${openvpn_cli}
-		for vpn_remote_ip_item in "${vpn_remote_ip_list[@]}"; do
+		for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
 			openvpn_cli="${openvpn_cli} --remote ${vpn_remote_ip_item} ${VPN_REMOTE_PORT} ${VPN_REMOTE_PROTOCOL}"
 		done
 
@@ -140,9 +134,6 @@ function start_openvpn() {
 	# split comma separated string into array from VPN_REMOTE_PROTOCOL env var
 	IFS=',' read -ra vpn_remote_protocol_list <<< "${VPN_REMOTE_PROTOCOL}"
 
-	# split comma separated string into array from VPN_REMOTE_IP env var
-	IFS=',' read -ra vpn_remote_dns_ip_list <<< "${VPN_REMOTE_IP}"
-
 	# setup ip tables and routing for application
 	source /root/iptable.sh
 
@@ -161,7 +152,7 @@ function start_openvpn() {
 
 			VPN_REMOTE_PORT="${vpn_remote_port_list[$index]}"
 			VPN_REMOTE_PROTOCOL="${vpn_remote_protocol_list[$index]}"
-			VPN_REMOTE_IP="${vpn_remote_dns_ip_list[$index]}"
+			VPN_REMOTE_IP="${vpn_remote_ip_array[$index]}"
 
 			if [[ "${DEBUG}" == "true" ]]; then
 
