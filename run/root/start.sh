@@ -185,7 +185,8 @@ else
 
 		else
 
-			remote_dns_answer_first="${vpn_remote_server}"
+			# append remote server ip addresses to the string using comma separators
+			vpn_remote_ip_array+=(${vpn_remote_server})
 
 		fi
 
