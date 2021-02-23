@@ -1,43 +1,39 @@
 #!/bin/bash
 
-# define incoming ports for applications
+# initialise arrays for incoming ports
+incoming_ports_ext_array=()
+incoming_ports_lan_array=()
+
+# append incoming ports for applications to arrays
 if [[ "${APPLICATION}" == "rtorrent" ]]; then
-	incoming_ports_ext="9080,9443"
-	incoming_ports_lan="5000"
+	incoming_ports_ext_array+=(9080 9443)
+	incoming_ports_lan_array+=(5000)
 elif [[ "${APPLICATION}" == "qbittorrent" ]]; then
-	incoming_ports_ext="${WEBUI_PORT}"
-	incoming_ports_lan=""
+	incoming_ports_ext_array+=(${WEBUI_PORT})
 elif [[ "${APPLICATION}" == "sabnzbd" ]]; then
-	incoming_ports_ext="8080,8090"
-	incoming_ports_lan=""
+	incoming_ports_ext_array+=(8080 8090)
 elif [[ "${APPLICATION}" == "deluge" ]]; then
-	incoming_ports_ext="8112"
-	incoming_ports_lan="58846"
-elif [[ "${APPLICATION}" == "privoxy" ]]; then
-	incoming_ports_ext=""
-	incoming_ports_lan=""
+	incoming_ports_ext_array+=(8112)
+	incoming_ports_lan_array+=(58846)
 fi
 
-# add additional ports for scripts or container linking to external access ports list
+# add additional ports (if specified) for scripts or container linking to incoming ports external access array
 if [[ ! -z "${ADDITIONAL_PORTS}" ]]; then
-	incoming_ports_ext="${incoming_ports_ext},${ADDITIONAL_PORTS}"
+	# split comma separated string into array from ADDITIONAL_PORTS env variable
+	IFS=',' read -ra additional_port_array <<< "${ADDITIONAL_PORTS}"
+	# merge both arrays
+	incoming_ports_ext_array=("${incoming_ports_ext_array[@]}" "${additional_port_array[@]}")
 fi
 
-# if microsocks enabled (privoxyvpn only) then add port for microsocks to incoming ports lan list
+# if microsocks enabled (privoxyvpn only) then add port for microsocks to  incoming ports lan access array
 if [[ "${ENABLE_MICROSOCKS}" == "yes" ]]; then
-	incoming_ports_lan="${incoming_ports_lan},9118"
+	incoming_ports_lan_array+=(9118)
 fi
 
-# if privoxy enabled then add port for privoxy to incoming ports lan list
+# if privoxy enabled then add port for privoxy to  incoming ports lan access array
 if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
-	incoming_ports_lan="${incoming_ports_lan},8118"
+	incoming_ports_lan_array+=(8118)
 fi
-
-# strip comma from start and end of incoming_ports_ext
-incoming_ports_ext=$(echo "${incoming_ports_ext}" | sed -e 's~^[,\t]*~~;s~[,\t]*$~~')
-
-# strip comma from start and end of incoming_ports_lan
-incoming_ports_lan=$(echo "${incoming_ports_lan}" | sed -e 's~^[,\t]*~~;s~[,\t]*$~~')
 
 # identify docker bridge interface name by looking at defult route
 docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '[^\s]+$')
@@ -61,33 +57,24 @@ if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Docker netmask defined as ${docker_mask}"
 fi
 
+# array for both protocols
+multi_protocol_array=(tcp udp)
+
 # convert netmask into cidr format
 docker_network_cidr=$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+")
 echo "[info] Docker network defined as ${docker_network_cidr}"
 
-# split comma separated string into list from incoming_ports_ext env variable
-IFS=',' read -ra incoming_ports_ext_list <<< "${incoming_ports_ext}"
-
-# split comma separated string into list from incoming_ports_lan env variable
-IFS=',' read -ra incoming_ports_lan_list <<< "${incoming_ports_lan}"
-
-# split comma separated string into list from LAN_NETWORK env variable
-IFS=',' read -ra lan_network_list <<< "${LAN_NETWORK}"
+# split comma separated string into array from LAN_NETWORK env variable
+IFS=',' read -ra lan_network_array <<< "${LAN_NETWORK}"
 
 # split comma separated string into array from VPN_REMOTE_PORT env var
-IFS=',' read -ra vpn_remote_port_list <<< "${VPN_REMOTE_PORT}"
-
-# split comma separated string into array for tcp and udp protocols (both required)
-IFS=',' read -ra multi_protocol_list <<< "tcp,udp"
-
-# split comma separated string into list from ADDITIONAL_PORTS env variable
-IFS=',' read -ra additional_port_list <<< "${ADDITIONAL_PORTS}"
+IFS=',' read -ra vpn_remote_port_array <<< "${VPN_REMOTE_PORT}"
 
 # ip route
 ###
 
-# process lan networks in the list
-for lan_network_item in "${lan_network_list[@]}"; do
+# process lan networks in the array
+for lan_network_item in "${lan_network_array[@]}"; do
 
 	# strip whitespace from start and end of lan_network_item
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
@@ -120,7 +107,7 @@ if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
 	mark=0
 
 	# setup route for application using set-mark to route traffic to lan
-	for incoming_ports_ext_item in "${incoming_ports_ext_list[@]}"; do
+	for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
 		mark=$((${mark}+1))
 		echo "${incoming_ports_ext_item}    ${incoming_ports_ext_item}_${APPLICATION}" >> '/etc/iproute2/rt_tables'
@@ -143,27 +130,23 @@ ip6tables -P INPUT DROP 1>&- 2>&-
 # accept input to/from docker containers (172.x range is internal dhcp)
 iptables -A INPUT -s "${docker_network_cidr}" -d "${docker_network_cidr}" -j ACCEPT
 
-# iterate over array and add all remote vpn ports and protocols
-for vpn_remote_port_item in "${vpn_remote_port_list[@]}"; do
+# iterate over remote ip address array (from start.sh) and create accept rules
+for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
 
-	for vpn_remote_protocol_item in "${multi_protocol_list[@]}"; do
+	# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
+	rule_exists=$(iptables -S | grep -e "-A INPUT -i "${docker_interface}" -s "${vpn_remote_ip_item}" -j ACCEPT")
 
-		# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
-		rule_exists=$(iptables -S | grep -e "-A INPUT -i "${docker_interface}" -p "${vpn_remote_protocol_item}" -m "${vpn_remote_protocol_item}" --sport "${vpn_remote_port_item}" -j ACCEPT")
-
-		if [[ -z "${rule_exists}" ]]; then
-			# accept input to vpn gateway
-			iptables -A INPUT -i "${docker_interface}" -p "${vpn_remote_protocol_item}" --sport "${vpn_remote_port_item}" -j ACCEPT
-		fi
-
-	done
+	if [[ -z "${rule_exists}" ]]; then
+		# accept input to remote vpn endpoint
+		iptables -A INPUT -i "${docker_interface}" -s "${vpn_remote_ip_item}" -j ACCEPT
+	fi
 
 done
 
-# process incoming ports list
-for incoming_ports_ext_item in "${incoming_ports_ext_list[@]}"; do
+# process incoming ports array
+for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
-	for vpn_remote_protocol_item in "${multi_protocol_list[@]}"; do
+	for vpn_remote_protocol_item in "${multi_protocol_array[@]}"; do
 
 		# accept input to application - used for lan access
 		iptables -A INPUT -i "${docker_interface}" -p "${vpn_remote_protocol_item}" --dport "${incoming_ports_ext_item}" -j ACCEPT
@@ -172,14 +155,14 @@ for incoming_ports_ext_item in "${incoming_ports_ext_list[@]}"; do
 
 done
 
-# process lan networks in the list
-for lan_network_item in "${lan_network_list[@]}"; do
+# process lan networks in the array
+for lan_network_item in "${lan_network_array[@]}"; do
 
 	# strip whitespace from start and end of lan_network_item
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 	# process application lan ports
-	for incoming_ports_lan_item in "${incoming_ports_lan_list[@]}"; do
+	for incoming_ports_lan_item in "${incoming_ports_lan_array[@]}"; do
 
 		# accept input to application lan port
 		iptables -A INPUT -i "${docker_interface}" -s "${lan_network_item}" -p tcp --dport "${incoming_ports_lan_item}" -j ACCEPT
@@ -218,20 +201,16 @@ ip6tables -P OUTPUT DROP 1>&- 2>&-
 # accept output to/from docker containers (172.x range is internal dhcp)
 iptables -A OUTPUT -s "${docker_network_cidr}" -d "${docker_network_cidr}" -j ACCEPT
 
-# iterate over array and add all remote vpn ports and protocols
-for vpn_remote_port_item in "${vpn_remote_port_list[@]}"; do
+# iterate over remote ip address array (from start.sh) and create accept rules
+for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
 
-	for vpn_remote_protocol_item in "${multi_protocol_list[@]}"; do
+	# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
+	rule_exists=$(iptables -S | grep -e "-A OUTPUT -o "${docker_interface}" -d "${vpn_remote_ip_item}" -j ACCEPT")
 
-		# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
-		rule_exists=$(iptables -S | grep -e "-A OUTPUT -o "${docker_interface}" -p "${vpn_remote_protocol_item}" -m "${vpn_remote_protocol_item}" --dport "${vpn_remote_port_item}" -j ACCEPT")
-
-		if [[ -z "${rule_exists}" ]]; then
-			# accept output to vpn gateway
-			iptables -A OUTPUT -o "${docker_interface}" -p "${vpn_remote_protocol_item}" --dport "${vpn_remote_port_item}" -j ACCEPT
-		fi
-
-	done
+	if [[ -z "${rule_exists}" ]]; then
+		# accept output to remote vpn endpoint
+		iptables -A OUTPUT -o "${docker_interface}" -d "${vpn_remote_ip_item}" -j ACCEPT
+	fi
 
 done
 
@@ -240,8 +219,8 @@ if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
 
 	mark=0
 
-	# process incoming ports list
-	for incoming_ports_ext_item in "${incoming_ports_ext_list[@]}"; do
+	# process incoming ports array
+	for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
 		mark=$((${mark}+1))
 		# accept output from application - used for external access
@@ -251,10 +230,10 @@ if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
 
 fi
 
-# process incoming ports list
-for incoming_ports_ext_item in "${incoming_ports_ext_list[@]}"; do
+# process incoming ports array
+for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
-	for vpn_remote_protocol_item in "${multi_protocol_list[@]}"; do
+	for vpn_remote_protocol_item in "${multi_protocol_array[@]}"; do
 
 		# accept output from application - used for lan access
 		iptables -A OUTPUT -o "${docker_interface}" -p "${vpn_remote_protocol_item}" --sport "${incoming_ports_ext_item}" -j ACCEPT
@@ -263,14 +242,14 @@ for incoming_ports_ext_item in "${incoming_ports_ext_list[@]}"; do
 
 done
 
-# process lan networks in the list
-for lan_network_item in "${lan_network_list[@]}"; do
+# process lan networks in the array
+for lan_network_item in "${lan_network_array[@]}"; do
 
 	# strip whitespace from start and end of lan_network_item
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
 	# process application lan ports
-	for incoming_ports_lan_item in "${incoming_ports_lan_list[@]}"; do
+	for incoming_ports_lan_item in "${incoming_ports_lan_array[@]}"; do
 
 		# accept output to application lan port
 		iptables -A OUTPUT -o "${docker_interface}" -d "${lan_network_item}" -p tcp --sport "${incoming_ports_lan_item}" -j ACCEPT
