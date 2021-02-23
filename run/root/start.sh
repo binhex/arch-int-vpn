@@ -123,6 +123,9 @@ else
 	# split comma separated string into list from VPN_REMOTE_SERVER variable
 	IFS=',' read -ra vpn_remote_server_list <<< "${VPN_REMOTE_SERVER}"
 
+	# initialise array used to store remote ip addresses for all remote endpoints
+	vpn_remote_ip_array=()
+
 	# process remote servers in the array
 	for vpn_remote_item in "${vpn_remote_server_list[@]}"; do
 
@@ -154,7 +157,7 @@ else
 					fi
 
 					# append remote server ip addresses to the string using comma separators
-					vpn_remote_ip+="${vpn_remote_item_dns_answer},"
+					vpn_remote_ip_array+=(${vpn_remote_item_dns_answer})
 
 					break
 
@@ -189,7 +192,7 @@ else
 	done
 
 	# export all resolved vpn remote ip's - used in sourced openvpn.sh
-	export VPN_REMOTE_IP="${vpn_remote_ip}"
+	export vpn_remote_ip_array="${vpn_remote_ip_array}"
 
 	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
