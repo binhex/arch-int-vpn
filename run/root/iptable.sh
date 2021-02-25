@@ -26,7 +26,7 @@ if [[ ! -z "${ADDITIONAL_PORTS}" ]]; then
 fi
 
 # if microsocks enabled (privoxyvpn only) then add port for microsocks to  incoming ports lan access array
-if [[ "${ENABLE_MICROSOCKS}" == "yes" ]]; then
+if [[ "${ENABLE_SOCKS}" == "yes" ]]; then
 	incoming_ports_lan_array+=(9118)
 fi
 
