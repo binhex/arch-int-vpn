@@ -395,7 +395,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 	export ADDITIONAL_PORTS=$(echo "${ADDITIONAL_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	export VPN_INPUT_PORTS=$(echo "${VPN_INPUT_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	if [[ ! -z "${ADDITIONAL_PORTS}" ]]; then
-		echo "[warn] ADDITIONAL_PORTS DEPRECATED, please rename env var to 'VPN_INPUT_PORTS' | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[warn] ADDITIONAL_PORTS DEPRECATED, please rename env var to 'VPN_INPUT_PORTS'" | ts '%Y-%m-%d %H:%M:%.S'
 		echo "[info] ADDITIONAL_PORTS defined as '${ADDITIONAL_PORTS}'" | ts '%Y-%m-%d %H:%M:%.S'
 		export VPN_INPUT_PORTS="${ADDITIONAL_PORTS}"
 	elif [[ ! -z "${VPN_INPUT_PORTS}" ]]; then
