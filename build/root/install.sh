@@ -393,10 +393,22 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 	fi
 
 	export ADDITIONAL_PORTS=$(echo "${ADDITIONAL_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	export VPN_INPUT_PORTS=$(echo "${VPN_INPUT_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	if [[ ! -z "${ADDITIONAL_PORTS}" ]]; then
-			echo "[info] ADDITIONAL_PORTS defined as '${ADDITIONAL_PORTS}'" | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[warn] ADDITIONAL_PORTS DEPRECATED, please rename env var to 'VPN_INPUT_PORTS' | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[info] ADDITIONAL_PORTS defined as '${ADDITIONAL_PORTS}'" | ts '%Y-%m-%d %H:%M:%.S'
+		export VPN_INPUT_PORTS="${ADDITIONAL_PORTS}"
+	elif [[ ! -z "${VPN_INPUT_PORTS}" ]]; then
+		echo "[info] VPN_INPUT_PORTS defined as '${VPN_INPUT_PORTS}'" | ts '%Y-%m-%d %H:%M:%.S'
 	else
-			echo "[info] ADDITIONAL_PORTS not defined (via -e ADDITIONAL_PORTS), skipping allow for custom incoming ports" | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[info] VPN_INPUT_PORTS not defined (via -e VPN_INPUT_PORTS), skipping allow for custom incoming ports" | ts '%Y-%m-%d %H:%M:%.S'
+	fi
+
+	export VPN_OUTPUT_PORTS=$(echo "${VPN_OUTPUT_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	if [[ ! -z "${VPN_OUTPUT_PORTS}" ]]; then
+		echo "[info] VPN_OUTPUT_PORTS defined as '${VPN_OUTPUT_PORTS}'" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[info] VPN_OUTPUT_PORTS not defined (via -e VPN_OUTPUT_PORTS), skipping allow for custom outgoing ports" | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
 fi
