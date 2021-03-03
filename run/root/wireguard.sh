@@ -98,7 +98,7 @@ PostDown = '/root/wireguarddown.sh'
 
 [Peer]
 PublicKey = ${pia_wireguard_server_key}
-AllowedIPs = 0.0.0.0/0
+AllowedIPs = 10.0.0.0/8
 Endpoint = ${VPN_REMOTE_SERVER}:${VPN_REMOTE_PORT}
 
 EOF
