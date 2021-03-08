@@ -147,7 +147,9 @@ else
 				fi
 
 				# resolve hostname to ip address(es)
-				vpn_remote_item_dns_answer=$(drill -a -4 "${vpn_remote_server}" | grep -v 'SERVER' | grep -m 63 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
+				# note grep -m 8 is used to limit number of returned ip's per host to
+				# 8 to reduce the change of hitting 64 remote options for openvpn
+				vpn_remote_item_dns_answer=$(drill -a -4 "${vpn_remote_server}" | grep -v 'SERVER' | grep -m 8 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
 				# check answer is not blank, if it is blank assume bad ns
 				if [[ ! -z "${vpn_remote_item_dns_answer}" ]]; then
