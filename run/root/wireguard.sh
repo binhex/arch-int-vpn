@@ -8,43 +8,48 @@ function pia_create_wireguard_keys() {
 
 }
 
-# note no retry count on this function as we must get a token to progress
 function pia_generate_token() {
 
+	retry_count=12
 	retry_wait_secs=10
 
 	while true; do
 
-		# jq (json query tool) query to select current vpn remote server (from env var) and then get metadata server ip address
-		jq_query_metadata_ip=".regions | .[] | select(.dns | match(\"^${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
+		if [[ "${retry_count}" -eq "0" ]]; then
 
-		# get metadata server ip address
-		vpn_remote_metadata_server_ip=$(echo "${PIA_VPNINFO_API}" | jq -r "${jq_query_metadata_ip}")
+			if [[ "${VPN_CLIENT}" -eq "wireguard" ]]; then
 
-		# get token json response BEFORE vpn established
-		token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://${vpn_remote_metadata_server_ip}/authv3/generateToken")
+				echo "[crit] Unable to successfully download PIA json to generate token for wireguard, exiting script..."
+				exit 1
+
+			fi
+
+		fi
+
+		# get token json response, this is required for wireguard connection
+		token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://privateinternetaccess.com/gtoken/generateToken")
 
 		if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
-			echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://${vpn_remote_metadata_server_ip}/authv3/generateToken'"
+			echo "[warn] Unable to successfully download PIA json to generate token for wireguard from URL 'https://privateinternetaccess.com/gtoken/generateToken'"
+			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
-			sleep "${retry_wait_secs}"s
+			retry_count=$((retry_count-1))
+			sleep "${retry_wait_secs}"s & wait $!
 
 		else
 
+			echo "[info] Token generated for PIA wireguard authentication"
+			token=$(echo "${token_json_response}" | jq -r '.token')
 			break
 
 		fi
 
 	done
 
-	# get token
-	token=$(echo "${token_json_response}" | jq -r '.token')
-
 	if [[ "${DEBUG}" == "true" ]]; then
 
-		echo "[debug] PIA 'meta ip' is '${vpn_remote_metadata_server_ip}'"
-		echo "[debug] PIA generated 'token' is '${token}'"
+		echo "[debug] PIA generated 'token' for wireguard is '${token}'"
 
 	fi
 

@@ -63,7 +63,7 @@ function get_incoming_port_nextgen() {
 
 			if [ "${retry_count}" -eq "0" ]; then
 
-				echo "[warn] Unable to download PIA json to generate token, exiting script..."
+				echo "[warn] Unable to download PIA json to generate token for port forwarding, exiting script..."
 				trigger_failure ; return 1
 
 			fi
@@ -71,17 +71,20 @@ function get_incoming_port_nextgen() {
 			# get token json response AFTER vpn established
 			# note binding to the vpn interface (using --interface flag for curl) is required
 			# due to users potentially using the 10.x.x.x range for lan, causing failure
-			token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://10.0.0.1/authv3/generateToken")
+			token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://privateinternetaccess.com/gtoken/generateToken")
 
 			if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
-				echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://10.0.0.1/authv3/generateToken'"
+				echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://privateinternetaccess.com/gtoken/generateToken'"
 				echo "[info] ${retry_count} retries left"
 				echo "[info] Retrying in ${retry_wait_secs} secs..."
 				retry_count=$((retry_count-1))
 				sleep "${retry_wait_secs}"s & wait $!
 
 			else
+
+				# get token
+				token=$(echo "${token_json_response}" | jq -r '.token')
 
 				# reset retry count on successful step
 				retry_count=12
@@ -99,9 +102,6 @@ function get_incoming_port_nextgen() {
 				trigger_failure ; return 1
 
 			fi
-
-			# get token
-			token=$(echo "${token_json_response}" | jq -r '.token')
 
 			# get payload and signature
 			# note use of urlencode, this is required, otherwise login failure can occur
@@ -128,21 +128,20 @@ function get_incoming_port_nextgen() {
 		payload=$(echo "${payload_and_sig}" | jq -r '.payload')
 		signature=$(echo "${payload_and_sig}" | jq -r '.signature')
 
-		# decode payload to get token, port, and expires date (2 months)
+		# decode payload to get port, and expires date (2 months)
 		payload_decoded=$(echo "${payload}" | base64 -d | jq)
 
 		if [ "${?}" -eq 0 ]; then
 
-			token=$(echo "${payload_decoded}" | jq -r '.token')
 			port=$(echo "${payload_decoded}" | jq -r '.port')
 			# note expires_at time in this format'2020-11-24T22:12:07.627551124Z'
 			expires_at=$(echo "${payload_decoded}" | jq -r '.expires_at')
 
 			if [[ "${DEBUG}" == "true" ]]; then
 
-				echo "[debug] Token is '${token}'"
-				echo "[debug] Port allocated is '${port}'"
-				echo "[debug] Port expires at '${expires_at}'"
+				echo "[debug] PIA generated 'token' for port forwarding is '${token}'"
+				echo "[debug] PIA port forward assigned is '${port}'"
+				echo "[debug] PIA port forward assigned expires on '${expires_at}'"
 
 			fi
 
