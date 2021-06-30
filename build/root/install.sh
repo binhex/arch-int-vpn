@@ -243,7 +243,9 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 		# if ovpn file not found in /config/openvpn then exit
 		if [[ -z "${VPN_CONFIG}" ]]; then
-			echo "[crit] No OpenVPN config file located in /config/openvpn/ (ovpn extension), please download from your VPN provider and then restart this container, exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
+			echo "[crit] No OpenVPN config file located in /config/openvpn/ (ovpn extension), please download from your VPN provider and then restart this container." | ts '%Y-%m-%d %H:%M:%.S'
+			echo "[info] Performing directory listing for '/config/openvpn/' before exiting..." | ts '%Y-%m-%d %H:%M:%.S'
+			ls -al '/config/openvpn' ; exit 1
 		fi
 
 		echo "[info] OpenVPN config file (ovpn extension) is located at ${VPN_CONFIG}" | ts '%Y-%m-%d %H:%M:%.S'
