@@ -1,4 +1,4 @@
-name: docker-tag-triggered-prod
+name: wokrflow-docker-release
 
 on:
   push:
