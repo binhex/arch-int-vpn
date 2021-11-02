@@ -241,10 +241,10 @@ function trigger_failure() {
 function set_trap() {
 
 	# trap kill signal INT (-2), TERM (-15) or EXIT (internal bash).
-	# kill all child processes, break while loops and exit with exit code 1
+	# kill all child processes and exit with exit code 1
 	# required to allow us to stop this script as it has several sleep
 	# commands and background function
-	trap 'kill $(jobs -p); break; exit 1' INT TERM EXIT
+	trap 'kill $(jobs -p); exit 1' INT TERM EXIT
 
 }
 
