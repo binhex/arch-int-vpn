@@ -27,11 +27,11 @@ function pia_generate_token() {
 		fi
 
 		# get token json response, this is required for wireguard connection
-		token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://privateinternetaccess.com/gtoken/generateToken")
+		token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://www.privateinternetaccess.com/gtoken/generateToken")
 
 		if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
-			echo "[warn] Unable to successfully download PIA json to generate token for wireguard from URL 'https://privateinternetaccess.com/gtoken/generateToken'"
+			echo "[warn] Unable to successfully download PIA json to generate token for wireguard from URL 'https://www.privateinternetaccess.com/gtoken/generateToken'"
 			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
 			retry_count=$((retry_count-1))
