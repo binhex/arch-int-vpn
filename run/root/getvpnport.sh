@@ -71,11 +71,11 @@ function get_incoming_port_nextgen() {
 			# get token json response AFTER vpn established
 			# note binding to the vpn interface (using --interface flag for curl) is required
 			# due to users potentially using the 10.x.x.x range for lan, causing failure
-			token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://privateinternetaccess.com/gtoken/generateToken")
+			token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://www.privateinternetaccess.com/gtoken/generateToken")
 
 			if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
-				echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://privateinternetaccess.com/gtoken/generateToken'"
+				echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://www.privateinternetaccess.com/gtoken/generateToken'"
 				echo "[info] ${retry_count} retries left"
 				echo "[info] Retrying in ${retry_wait_secs} secs..."
 				retry_count=$((retry_count-1))
