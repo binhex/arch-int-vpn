@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 while [ ! -f /tmp/getvpnip ]
 do

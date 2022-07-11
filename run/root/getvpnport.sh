@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 # check endpoint is port forward enabled (pia only)
 function port_forward_status() {

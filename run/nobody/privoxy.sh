@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 

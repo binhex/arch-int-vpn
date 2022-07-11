@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 # if vpn set to "no" then don't run openvpn
 if [[ "${VPN_ENABLED}" == "no" ]]; then

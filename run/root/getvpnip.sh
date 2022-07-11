@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 # function to check ip address is in valid format (used for local tunnel ip and external ip)
 check_valid_ip() {
