@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 # this script reads in the contents of a temporary file which contains the current
 # iptables chain policies to check that they are in place before proceeding onto
