@@ -1,4 +1,4 @@
-#!/usr/bin/dumb-init /bin/bash
+#!/bin/bash
 
 # this script checks dns is operational, a file is created if
 # dns is not operational and this is monitored and picked up
