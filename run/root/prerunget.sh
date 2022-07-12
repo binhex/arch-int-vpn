@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/dumb-init /bin/bash
 
 # script to call multiple scripts in series to read and then write out values
 
@@ -12,4 +12,5 @@ source /home/nobody/checkdns.sh www.google.com
 source /root/getvpnextip.sh
 
 # backgrounded script, will wait for vpn incoming port to be assigned (port written to file /tmp/getvpnport)
-source /root/getvpnport.sh &
+# note cannot 'source' as you cannot background a sourced file (background creates new shell)
+/root/getvpnport.sh &
