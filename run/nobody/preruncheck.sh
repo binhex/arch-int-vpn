@@ -1,4 +1,4 @@
-#!/usr/bin/dumb-init /bin/bash
+#!/bin/bash
 
 # script to call multiple scripts in series to read in values written by script /root/prerunget.sh
 

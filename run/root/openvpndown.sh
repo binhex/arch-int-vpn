@@ -1,4 +1,4 @@
-#!/usr/bin/dumb-init /bin/bash
+#!/bin/bash
 
 if [[ "${VPN_PROV}" == "pia" ]]; then
 	if [ -f '/tmp/getvpnport.pid' ]; then

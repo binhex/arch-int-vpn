@@ -1,4 +1,4 @@
-#!/usr/bin/dumb-init /bin/bash
+#!/bin/bash
 
 # define timeout periods
 curl_connnect_timeout_secs=10

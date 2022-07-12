@@ -1,4 +1,4 @@
-#!/usr/bin/dumb-init /bin/bash
+#!/bin/bash
 
 # variable used below with bash indirect expansion
 application_incoming_port="${APPLICATION}_port"

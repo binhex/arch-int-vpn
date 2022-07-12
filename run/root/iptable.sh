@@ -1,4 +1,4 @@
-#!/usr/bin/dumb-init /bin/bash
+#!/bin/bash
 
 # initialise arrays for incoming ports
 incoming_ports_ext_array=()
