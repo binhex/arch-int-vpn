@@ -368,7 +368,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 		export VPN_PASS=$(echo "${VPN_PASS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 		if [[ ! -z "${VPN_PASS}" ]]; then
-			echo "[info] VPN_PASS defined as '${VPN_PASS}'" | ts '%Y-%m-%d %H:%M:%.S'
+			echo "[info] VPN_PASS last 4 defined as '${VPN_PASS: -4}'" | ts '%Y-%m-%d %H:%M:%.S'
 		else
 			echo "[warn] VPN_PASS not defined (via -e VPN_PASS), assuming authentication via other method" | ts '%Y-%m-%d %H:%M:%.S'
 		fi
