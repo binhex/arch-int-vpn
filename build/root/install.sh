@@ -35,7 +35,7 @@ fi
 ####
 
 # define pacman packages
-pacman_packages="kmod openvpn privoxy bind-tools gnu-netcat ipcalc wireguard-tools openresolv"
+pacman_packages="openssl-1.1 kmod openvpn privoxy bind-tools gnu-netcat ipcalc wireguard-tools openresolv"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
