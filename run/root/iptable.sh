@@ -45,7 +45,7 @@ if [[ ! -z "${VPN_OUTPUT_PORTS}" ]]; then
 fi
 
 # identify docker bridge interface name by looking at defult route
-docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '[^\s]+$')
+docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '(?<=dev )([^\s]+)')
 if [[ "${DEBUG}" == "true" ]]; then
 	echo "[debug] Docker interface defined as ${docker_interface}"
 fi
