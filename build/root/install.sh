@@ -87,26 +87,6 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		echo "[crit] VPN_PROV not defined,(via -e VPN_PROV), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
 	fi
 
-	if [[ "${VPN_PROV}" == "pia" ]]; then
-
-		pia_vpninfo_api_url="https://serverlist.piaservers.net/vpninfo/servers/v4"
-
-		# export vpninfo json as this is used in getvpnport.sh and wireguard.sh
-		export PIA_VPNINFO_API=$(curl --silent "${pia_vpninfo_api_url}")
-
-		if [[ -z "${PIA_VPNINFO_API}" ]]; then
-
-			if [[ "${VPN_CLIENT}" == "wireguard" ]]; then
-				echo "[crit] PIA VPN server info JSON cannot be downloaded from URL '${pia_vpninfo_api_url}' exit code from curl is '${?}', exiting..." | ts '%Y-%m-%d %H:%M:%.S'
-				exit 1
-			else
-				echo "[warn] PIA VPN server info JSON cannot be downloaded from URL '${pia_vpninfo_api_url}' exit code from curl is '${?}'" | ts '%Y-%m-%d %H:%M:%.S'
-			fi
-
-		fi
-
-	fi
-
 	if [[ "${VPN_CLIENT}" == "wireguard" ]]; then
 
 		# create directory to store wireguard config files
@@ -143,16 +123,8 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 				echo "[info] VPN_REMOTE_SERVER not defined (wireguard config doesnt file exists), defaulting to 'nl-amsterdam.privacy.network'" | ts '%Y-%m-%d %H:%M:%.S'
 				export VPN_REMOTE_SERVER="nl-amsterdam.privacy.network"
 
-				# get wireguard port from pia api, as the port could change
-				jq_query_wg_ports=".groups | .wg | .[] | .ports[]"
-				export VPN_REMOTE_PORT=$(echo "${PIA_VPNINFO_API}" | jq -r "${jq_query_wg_ports}" 2> /dev/null)
-
-				if [[ -z "${VPN_REMOTE_PORT}" ]]; then
-					echo "[info] VPN_REMOTE_PORT not defined (wireguard config file doesnt exists), defaulting to '1337'" | ts '%Y-%m-%d %H:%M:%.S'
-					export VPN_REMOTE_PORT="1337"
-				else
-					echo "[info] VPN_REMOTE_PORT not defined (wireguard config file doesnt exists), identified port as '${VPN_REMOTE_PORT}'" | ts '%Y-%m-%d %H:%M:%.S'
-				fi
+				echo "[info] VPN_REMOTE_PORT not defined (wireguard config file doesnt exists), defaulting to '1337'" | ts '%Y-%m-%d %H:%M:%.S'
+				export VPN_REMOTE_PORT="1337"
 
 			else
 
@@ -184,16 +156,10 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 			if [[ "${VPN_PROV}" == "pia" ]]; then
 
-				# get wireguard port from pia api, as the port could change
-				jq_query_wg_ports=".groups | .wg | .[] | .ports[]"
-				export VPN_REMOTE_PORT=$(echo "${PIA_VPNINFO_API}" | jq -r "${jq_query_wg_ports}" 2> /dev/null)
-
+				export VPN_REMOTE_PORT=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint\s=\s).*' | grep -P -o '[\d]+$' || true)
 				if [[ -z "${VPN_REMOTE_PORT}" ]]; then
-					export VPN_REMOTE_PORT=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint\s=\s).*' | grep -P -o '[\d]+$' || true)
-					if [[ -z "${VPN_REMOTE_PORT}" ]]; then
-						echo "[warn] VPN configuration file ${VPN_CONFIG} does not contain port on 'Endpoint' line, defaulting to '1337'" | ts '%Y-%m-%d %H:%M:%.S'
-						export VPN_REMOTE_PORT="1337"
-					fi
+					echo "[warn] VPN configuration file ${VPN_CONFIG} does not contain port on 'Endpoint' line, defaulting to '1337'" | ts '%Y-%m-%d %H:%M:%.S'
+					export VPN_REMOTE_PORT="1337"
 				fi
 
 			else
@@ -343,6 +309,9 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 	fi
 
+	# resolve vpn endpoints, drop all, allow vpn endpoints, if client pia then also allow pia api and pia website
+	source /root/iptable-init.sh
+
 	export LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	if [[ ! -z "${LAN_NETWORK}" ]]; then
 		echo "[info] LAN_NETWORK defined as '${LAN_NETWORK}'" | ts '%Y-%m-%d %H:%M:%.S'
@@ -412,9 +381,6 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 	else
 		echo "[info] VPN_OUTPUT_PORTS not defined (via -e VPN_OUTPUT_PORTS), skipping allow for custom outgoing ports" | ts '%Y-%m-%d %H:%M:%.S'
 	fi
-
-	# resolve endpoints, drop all, permit vpn endpoints and pia api and website
-	source /root/iptable-init.sh
 
 fi
 
