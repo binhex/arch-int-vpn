@@ -130,12 +130,6 @@ fi
 # input iptable rules
 ###
 
-# set policy to drop ipv4 for input
-iptables -P INPUT DROP
-
-# set policy to drop ipv6 for input
-ip6tables -P INPUT DROP 1>&- 2>&-
-
 # accept input to/from docker containers (172.x range is internal dhcp)
 iptables -A INPUT -s "${docker_network_cidr}" -d "${docker_network_cidr}" -j ACCEPT
 
@@ -195,23 +189,8 @@ iptables -A INPUT -i lo -j ACCEPT
 # accept input to tunnel adapter
 iptables -A INPUT -i "${VPN_DEVICE_TYPE}" -j ACCEPT
 
-# forward iptable rules
-###
-
-# set policy to drop ipv4 for forward
-iptables -P FORWARD DROP
-
-# set policy to drop ipv6 for forward
-ip6tables -P FORWARD DROP 1>&- 2>&-
-
 # output iptable rules
 ###
-
-# set policy to drop ipv4 for output
-iptables -P OUTPUT DROP
-
-# set policy to drop ipv6 for output
-ip6tables -P OUTPUT DROP 1>&- 2>&-
 
 # accept output to/from docker containers (172.x range is internal dhcp)
 iptables -A OUTPUT -s "${docker_network_cidr}" -d "${docker_network_cidr}" -j ACCEPT

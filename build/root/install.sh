@@ -413,6 +413,9 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		echo "[info] VPN_OUTPUT_PORTS not defined (via -e VPN_OUTPUT_PORTS), skipping allow for custom outgoing ports" | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
+	# resolve endpoints, drop all, permit vpn endpoints and pia api and website
+	source /root/iptable-init.sh
+
 fi
 
 EOF
