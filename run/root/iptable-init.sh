@@ -138,7 +138,7 @@ resolve_vpn_endpoints
 iptables -P INPUT DROP
 
 # set policy to drop ipv6 for input
-ip6tables -P INPUT DROP 1>&- 2>&-
+#ip6tables -P INPUT DROP 1>&- 2>&-
 
 # block all forward
 ###
@@ -147,7 +147,7 @@ ip6tables -P INPUT DROP 1>&- 2>&-
 iptables -P FORWARD DROP
 
 # set policy to drop ipv6 for forward
-ip6tables -P FORWARD DROP 1>&- 2>&-
+#ip6tables -P FORWARD DROP 1>&- 2>&-
 
 # block all outbound
 ###
@@ -156,7 +156,7 @@ ip6tables -P FORWARD DROP 1>&- 2>&-
 iptables -P OUTPUT DROP
 
 # set policy to drop ipv6 for output
-ip6tables -P OUTPUT DROP 1>&- 2>&-
+#ip6tables -P OUTPUT DROP 1>&- 2>&-
 
 # call function to identify docker interface
 identify_docker_interface
