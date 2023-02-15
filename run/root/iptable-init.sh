@@ -131,32 +131,50 @@ function resolve_vpn_endpoints() {
 # call function to resolve all vpn endpoints
 resolve_vpn_endpoints
 
-# block all inbound
-###
+# check and set iptables drop
+if ! command -v iptables 1>&- 2>&-; then
 
-# set policy to drop ipv4 for input
-iptables -P INPUT DROP
+        echo "[crit] iptables kernel module not available, exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
+		exit 1
 
-# set policy to drop ipv6 for input
-ip6tables -P INPUT DROP 1>&- 2>&-
+else
 
-# block all forward
-###
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] iptables kernel module available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+	fi
 
-# set policy to drop ipv4 for forward
-iptables -P FORWARD DROP
+	# set policy to drop ipv4 for input
+	iptables -P INPUT DROP 1>&- 2>&-
 
-# set policy to drop ipv6 for forward
-ip6tables -P FORWARD DROP 1>&- 2>&-
+	# set policy to drop ipv4 for forward
+	iptables -P FORWARD DROP 1>&- 2>&-
 
-# block all outbound
-###
+	# set policy to drop ipv4 for output
+	iptables -P OUTPUT DROP 1>&- 2>&-
 
-# set policy to drop ipv4 for output
-iptables -P OUTPUT DROP
+fi
 
-# set policy to drop ipv6 for output
-ip6tables -P OUTPUT DROP 1>&- 2>&-
+# check and set ip6tables drop
+if ! command -v ip6tables 1>&- 2>&-; then
+
+        echo "[warn] ip6tables kernel module not available, skipping ip6tables drops" | ts '%Y-%m-%d %H:%M:%.S'
+
+else
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] ip6tables kernel module available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+	fi
+
+	# set policy to drop ipv6 for input
+	ip6tables -P INPUT DROP 1>&- 2>&-
+
+	# set policy to drop ipv6 for forward
+	ip6tables -P FORWARD DROP 1>&- 2>&-
+
+	# set policy to drop ipv6 for output
+	ip6tables -P OUTPUT DROP 1>&- 2>&-
+
+fi
 
 # call function to identify docker interface
 identify_docker_interface
