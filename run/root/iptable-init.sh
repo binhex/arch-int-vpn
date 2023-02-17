@@ -132,7 +132,7 @@ function resolve_vpn_endpoints() {
 resolve_vpn_endpoints
 
 # check and set iptables drop
-if ! lsmod | grep ip_tables > /dev/null 2>&1; then
+if ! iptables -S | grep '^-P' > /dev/null 2>&1; then
 
         echo "[crit] iptables kernel module 'ip_tables' not available, exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
 		exit 1
@@ -155,7 +155,7 @@ else
 fi
 
 # check and set ip6tables drop
-if ! lsmod | grep ip6_tables > /dev/null 2>&1; then
+if ! ip6tables -S | grep '^-P' > /dev/null 2>&1; then
 
         echo "[warn] ip6tables kernel module 'ip6_tables' not available, skipping ip6tables drops" | ts '%Y-%m-%d %H:%M:%.S'
 
