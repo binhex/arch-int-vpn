@@ -134,13 +134,13 @@ resolve_vpn_endpoints
 # check and set iptables drop
 if ! iptables -S | grep '^-P' > /dev/null 2>&1; then
 
-        echo "[crit] iptables kernel module 'ip_tables' not available, exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
+        echo "[crit] iptables default policies not available, exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
 		exit 1
 
 else
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] iptables kernel module 'ip_tables' available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[debug] iptables default policies available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
 	# set policy to drop ipv4 for input
@@ -157,12 +157,12 @@ fi
 # check and set ip6tables drop
 if ! ip6tables -S | grep '^-P' > /dev/null 2>&1; then
 
-        echo "[warn] ip6tables kernel module 'ip6_tables' not available, skipping ip6tables drops" | ts '%Y-%m-%d %H:%M:%.S'
+        echo "[warn] ip6tables default policies not available, skipping ip6tables drops" | ts '%Y-%m-%d %H:%M:%.S'
 
 else
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] ip6tables kernel module 'ip6_tables' available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[debug] ip6tables default policies available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
 	# set policy to drop ipv6 for input
