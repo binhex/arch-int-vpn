@@ -105,7 +105,7 @@ function get_incoming_port_nextgen() {
 
 			# get payload and signature
 			# note use of urlencode, this is required, otherwise login failure can occur
-			payload_and_sig=$(curl --insecure --silent --max-time 5 --get --data-urlencode "token=${token}" "https://${vpn_gateway_ip}:19999/getSignature")
+			payload_and_sig=$(curl --interface "${VPN_DEVICE_TYPE}" --insecure --silent --max-time 5 --get --data-urlencode "token=${token}" "https://${vpn_gateway_ip}:19999/getSignature")
 
 			if [ "$(echo "${payload_and_sig}" | jq -r '.status')" != "OK" ]; then
 
@@ -203,7 +203,7 @@ function bind_incoming_port_nextgen() {
 		fi
 
 		# note use of urlencode, this is required, otherwise login failure can occur
-		bind_port=$(curl --insecure --silent --max-time 5 --get --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${vpn_gateway_ip}:19999/bindPort")
+		bind_port=$(curl --interface "${VPN_DEVICE_TYPE}" --insecure --silent --max-time 5 --get --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${vpn_gateway_ip}:19999/bindPort")
 
 		if [ "$(echo "${bind_port}" | jq -r '.status')" != "OK" ]; then
 
