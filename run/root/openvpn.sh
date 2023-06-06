@@ -109,6 +109,27 @@ function watchdog() {
 
 		fi
 
+		if [ "${down}" == "true" ]; then
+
+			if [ -f '/tmp/endpoints' ]; then
+
+				# read in associative array of endpint names and ip addresses from file created from function resolve_vpn_endpoints in /root/tools.sh
+				source '/tmp/endpoints'
+
+				for i in "${!vpn_remote_array[@]}"; do
+
+					endpoint_name="${i}"
+					endpoint_ip_array=( "${vpn_remote_array[$i]}" )
+
+					# run function to round robin the endpoint ip and write to /etc/hosts
+					round_robin_endpoint_ip "${endpoint_name}" "${endpoint_ip_array[@]}"
+
+				done
+
+			fi
+
+		fi
+
 		# if flagged by above scripts then down vpn tunnel
 		if [ "${down}" == "true" ]; then
 			pkill -SIGTERM "openvpn"
@@ -171,6 +192,9 @@ function start_openvpn() {
 	done
 
 }
+
+# source in resolve dns and round robin ip's from functions
+source '/root/tools.sh'
 
 # start openvpn function
 start_openvpn

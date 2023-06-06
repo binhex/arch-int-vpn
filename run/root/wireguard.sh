@@ -148,6 +148,27 @@ function watchdog() {
 
 		fi
 
+		if [ "${down}" == "true" ]; then
+
+			if [ -f '/tmp/endpoints' ]; then
+
+				# read in associative array of endpint names and ip addresses from file created from function resolve_vpn_endpoints in /root/tools.sh
+				source '/tmp/endpoints'
+
+				for i in "${!vpn_remote_array[@]}"; do
+
+					endpoint_name="${i}"
+					endpoint_ip_array=( "${vpn_remote_array[$i]}" )
+
+					# run function to round robin the endpoint ip and write to /etc/hosts
+					round_robin_endpoint_ip "${endpoint_name}" "${endpoint_ip_array[@]}"
+
+				done
+
+			fi
+
+		fi
+
 		# if flagged by above scripts then down vpn tunnel
 		if [ "${down}" == "true" ]; then
 			down_wireguard
@@ -185,6 +206,9 @@ function edit_wireguard() {
 }
 
 function up_wireguard() {
+
+	echo "[info] Rerunning wireguard authentication..."
+	start_wireguard
 
 	echo "[info] Attempting to bring WireGuard interface 'up'..."
 	wg-quick up "${VPN_CONFIG}"
@@ -230,9 +254,13 @@ function start_wireguard() {
 	# setup ip tables and routing for application
 	source /root/iptable.sh
 
-	# start watchdog function
-	watchdog
-
 }
 
+# source in resolve dns and round robin ip's from functions
+source '/root/tools.sh'
+
+# kick off start
 start_wireguard
+
+# start watchdog function
+watchdog
