@@ -38,6 +38,9 @@ if [[ ! -z "${VPN_INPUT_PORTS}" ]]; then
 
 fi
 
+# convert list of ip's back into an array (cannot export arrays in bash)
+IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
+
 # if vpn output ports specified then add to outbound ports lan array
 if [[ ! -z "${VPN_OUTPUT_PORTS}" ]]; then
 	# split comma separated string into array from VPN_OUTPUT_PORTS env variable

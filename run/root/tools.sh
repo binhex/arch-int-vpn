@@ -50,9 +50,11 @@ function resolve_vpn_endpoints() {
 	IFS=',' read -ra vpn_remote_server_list <<< "${VPN_REMOTE_SERVER}"
 
 	# initialise indexed array used to store remote ip addresses for all remote endpoints
+	# note arrays are local to function unless -g flag is added
 	declare -a vpn_remote_ip_array
 
 	# initalise associative array used to store names and ip for remote endpoints
+	# note arrays are local to function unless -g flag is added
 	declare -A vpn_remote_array
 
 	if [[ "${VPN_PROV}" == "pia" ]]; then
@@ -131,9 +133,14 @@ function resolve_vpn_endpoints() {
 			# must also be able to resolve the host name (assuming it is a name and not ip).
 			remote_dns_answer_first=$(echo "${vpn_remote_item_dns_answer}" | cut -d ' ' -f 1)
 
-			# if not blank then write to hosts file
-			if [[ ! -z "${remote_dns_answer_first}" ]]; then
-				echo "${remote_dns_answer_first}	${vpn_remote_server}" >> /etc/hosts
+			# if name not already in /etc/hosts file then write
+			if ! grep -P -o -m 1 "${vpn_remote_server}" < '/etc/hosts'; then
+
+				# if name resolution to ip is not blank then write to hosts file
+				if [[ ! -z "${remote_dns_answer_first}" ]]; then
+					echo "${remote_dns_answer_first}	${vpn_remote_server}" >> /etc/hosts
+				fi
+
 			fi
 
 		else
@@ -145,6 +152,6 @@ function resolve_vpn_endpoints() {
 
 	done
 
-	# export all resolved vpn remote ip's - used in sourced openvpn.sh
-	export vpn_remote_ip_array="${vpn_remote_ip_array}"
+	# assign array to string (cannot export array in bash) and export for use with other scripts
+	export VPN_REMOTE_IP_LIST="${vpn_remote_ip_array[*]}"
 }

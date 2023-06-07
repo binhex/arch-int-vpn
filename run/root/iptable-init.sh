@@ -21,6 +21,9 @@ function add_vpn_endpoints_to_iptables_accept() {
 		srcdst_flag="-d"
 	fi
 
+	# convert list of ip's back into an array (cannot export arrays in bash)
+	IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
+
 	# iterate over remote ip address array and create accept rules
 	for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
 

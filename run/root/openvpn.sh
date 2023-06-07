@@ -155,6 +155,9 @@ function start_openvpn() {
 	# split comma separated string into array from VPN_REMOTE_PROTOCOL env var
 	IFS=',' read -ra vpn_remote_protocol_list <<< "${VPN_REMOTE_PROTOCOL}"
 
+	# convert list of ip's back into an array (cannot export arrays in bash)
+	IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
+
 	# setup ip tables and routing for application
 	source /root/iptable.sh
 
