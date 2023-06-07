@@ -49,8 +49,8 @@ function resolve_vpn_endpoints() {
 	# split comma separated string into list from VPN_REMOTE_SERVER variable
 	IFS=',' read -ra vpn_remote_server_list <<< "${VPN_REMOTE_SERVER}"
 
-	# initialise array used to store remote ip addresses for all remote endpoints
-	vpn_remote_ip_array=()
+	# initialise indexed array used to store remote ip addresses for all remote endpoints
+	declare -a vpn_remote_ip_array
 
 	# initalise associative array used to store names and ip for remote endpoints
 	declare -A vpn_remote_array
