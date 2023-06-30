@@ -17,7 +17,7 @@ function pia_generate_token() {
 
 		if [[ "${retry_count}" -eq "0" ]]; then
 
-			if [[ "${VPN_CLIENT}" -eq "wireguard" ]]; then
+			if [[ "${VPN_CLIENT}" == "wireguard" ]]; then
 
 				echo "[crit] Unable to successfully download PIA json to generate token for wireguard, exiting script..."
 				exit 1
