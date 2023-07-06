@@ -49,7 +49,7 @@ function pia_port_forward_status() {
 }
 
 function protonvpn_port_forward_status() {
-	set -x
+
 	# get vpn local ip (not used) and gateway ip
 	source /root/tools.sh
 
