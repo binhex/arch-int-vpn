@@ -12,7 +12,7 @@ function create_openvpn_cli() {
 
 	fi
 
-	if [[ "${VPN_PROV}" == "pia" ]]; then
+	if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
 
 		# add pia specific flags
 		openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD '${STRICT_PORT_FORWARD}' --setenv VPN_USER '${VPN_USER}' --setenv VPN_PASS '${VPN_PASS}' --down /root/openvpndown.sh --disable-occ"

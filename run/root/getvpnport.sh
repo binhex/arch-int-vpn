@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # check endpoint is port forward enabled (pia only)
-function port_forward_status() {
+function pia_port_forward_status() {
 
 	echo "[info] Port forwarding is enabled"
 
@@ -48,8 +48,32 @@ function port_forward_status() {
 
 }
 
+function protonvpn_port_forward_status() {
+	set -x
+	# get vpn local ip (not used) and gateway ip
+	source /root/tools.sh
+
+	# run function from tools.sh
+	get_vpn_gateway_ip
+
+	# check if username has the required suffix of '+pmp'
+	if [[ "${VPN_USER}" != *"+pmp"* ]]; then
+		echo "[info] ProtonVPN username '${VPN_USER}' does not contain the suffix '+pmp' and therefore is not enabled for port forwarding, skipping port forward assignment..."
+		return 1
+	fi
+
+	# check if endpoint is enabled for p2p
+	if ! natpmpc -g "${vpn_gateway_ip}"; then
+		echo "[warn] ProtonVPN endpoint '${VPN_REMOTE_SERVER}' is not enabled for P2P port forwarding, skipping port forward assignment..."
+		return 1
+	fi
+	return 0
+
+}
+
+
 # attempt to get incoming port (pia only)
-function get_incoming_port_nextgen() {
+function pia_get_incoming_port() {
 
 	retry_count=12
 	retry_wait_secs=10
@@ -57,7 +81,10 @@ function get_incoming_port_nextgen() {
 	while true; do
 
 		# get vpn local ip (not used) and gateway ip
-		source /root/getvpnip.sh
+		source /root/tools.sh
+
+		# run function from tools.sh
+		get_vpn_gateway_ip
 
 		while true; do
 
@@ -165,7 +192,7 @@ function get_incoming_port_nextgen() {
 		fi
 
 		# run function to bind port every 15 minutes (background)
-		bind_incoming_port_nextgen &
+		pia_keep_incoming_port_alive &
 
 		# current time in GMT minus 2 hours to ensure we are within the 2 month time period, compared to epoch
 		current_datetime_epoch=$(TZ=GMT date -d '2 hour ago' +%s)
@@ -174,7 +201,7 @@ function get_incoming_port_nextgen() {
 		expires_at_convert_epoch=$(date -d "${expires_at}" +%s)
 
 		# calculate time left before port expires
-		expires_at_delta=$(( (expires_at_convert_epoch - current_datetime_epoch) ))
+		expires_at_delta=$(( expires_at_convert_epoch - current_datetime_epoch ))
 
 		# sleep for time difference
 		sleep "${expires_at_delta}"s & wait $!
@@ -183,8 +210,75 @@ function get_incoming_port_nextgen() {
 
 }
 
-# attempt to bind incoming port (pia only)
-function bind_incoming_port_nextgen() {
+function protonvpn_get_incoming_port() {
+
+	protocol_list="UDP TCP"
+
+	for protocol in ${protocol_list}; do
+
+		# create a port forward for udp/tcp port
+		port=$(natpmpc -g "${vpn_gateway_ip}" -a 0 0 "${protocol}" 60 | grep -P -o -m 1 '(?<=Mapped public port\s)\d+')
+		if [ -z "${port}" ]; then
+			echo "[warn] Unable to assign an incoming port for protocol ${protocol}, returning 1 from function..."
+			return 1
+		fi
+
+	done
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] ProtonVPN assigned incoming port is '${port}'"
+	fi
+
+	# write port number to text file (read by downloader script)
+	echo "${port}" > /tmp/getvpnport
+
+	return 0
+
+}
+
+function protonvpn_keep_incoming_port_alive() {
+
+	# run function to set trap so we exit cleanly when kill issued
+	# due to this function running in background we need to set trap here as well as main
+	set_trap
+
+	retry_count=12
+	retry_wait_secs=10
+
+	while true; do
+
+		if [ "${retry_count}" -eq "0" ]; then
+
+			echo "[warn] Unable to bind incoming port '${port}', exiting script..."
+			trigger_failure ; return 1
+
+		fi
+
+		if ! protonvpn_get_incoming_port; then
+
+			echo "[warn] Unable to assign incoming port"
+			retry_count=$((retry_count-1))
+			echo "[info] ${retry_count} retries left"
+			echo "[info] Retrying in ${retry_wait_secs} secs..."
+			sleep "${retry_wait_secs}"s & wait $!
+			continue
+
+		else
+
+			# reset retry count on successful step
+			retry_count=12
+
+		fi
+
+		echo "[info] Successfully assigned and bound incoming port '${port}'"
+
+		# we need to poll AT LEAST every 60 seconds to keep the port open
+		sleep 45s & wait $!
+
+	done
+}
+
+function pia_keep_incoming_port_alive() {
 
 	# run function to set trap so we exit cleanly when kill issued
 	# due to this function running in background we need to set trap here as well as main
@@ -223,7 +317,7 @@ function bind_incoming_port_nextgen() {
 
 		echo "[info] Successfully assigned and bound incoming port '${port}'"
 
-		# re-issue of bind required every 15 minutes
+		# we need to poll AT LEAST every 15 minutes to keep the port open
 		sleep 15m & wait $!
 
 	done
@@ -249,43 +343,85 @@ function set_trap() {
 }
 
 # check that app requires port forwarding and vpn provider is pia (note this env var is passed through to up script via openvpn --sentenv option)
-if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]] && [[ "${VPN_PROV}" == "pia" ]]; then
+if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; then
 
-	if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
+	if [[ "${VPN_PROV}" == "protonvpn" ]]; then
 
-		echo "[info] Port forwarding is not enabled"
+		if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
 
-		# create empty incoming port file (read by downloader script)
-		touch /tmp/getvpnport
+			echo "[info] Port forwarding is not enabled"
+
+			# create empty incoming port file (read by downloader script)
+			touch /tmp/getvpnport
+
+		else
+
+			echo "[info] Script started to assign incoming port for '${VPN_PROV}'"
+
+			# write pid of this script to file, this file is then used to kill this script if openvpn/wireguard restarted/killed
+			echo "${BASHPID}" > '/tmp/getvpnport.pid'
+
+			# run function to set trap so we exit cleanly when kill issued
+			set_trap
+
+			# check whether endpoint is enabled for port forwarding and username has correct suffix
+			if protonvpn_port_forward_status; then
+
+				# get incoming port - blocking as in infinite while loop
+				protonvpn_keep_incoming_port_alive
+
+			fi
+
+			echo "[info] Script finished to assign incoming port"
+
+		fi
+
+	elif [[ "${VPN_PROV}" == "pia" ]]; then
+
+		if [[ "${STRICT_PORT_FORWARD}" == "no" ]]; then
+
+			echo "[info] Port forwarding is not enabled"
+
+			# create empty incoming port file (read by downloader script)
+			touch /tmp/getvpnport
+
+		else
+
+			echo "[info] Script started to assign incoming port for '${VPN_PROV}'"
+
+			# write pid of this script to file, this file is then used to kill this script if openvpn/wireguard restarted/killed
+			echo "${BASHPID}" > '/tmp/getvpnport.pid'
+
+			# run function to set trap so we exit cleanly when kill issued
+			set_trap
+
+			# pia api url for endpoint status (port forwarding enabled true|false)
+			pia_vpninfo_api="https://serverlist.piaservers.net/vpninfo/servers/v4"
+
+			# jq (json query tool) query to list port forward enabled servers by hostname (dns)
+			jq_query_portforward_enabled='.regions | .[] | select(.port_forward=='true') | .dns'
+
+			# jq (json query tool) query to select current vpn remote server (from env var) and then get metadata server ip address
+			jq_query_metadata_ip=".regions | .[] | select(.dns | match(\"^${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
+
+			# check whether endpoint is enabled for port forwarding
+			pia_port_forward_status
+
+			# get incoming port
+			pia_get_incoming_port
+
+			echo "[info] Script finished to assign incoming port"
+
+		fi
 
 	else
 
-		echo "[info] Script started to assign incoming port"
-
-		# write pid of this script to file, this file is then used to kill this script if openvpn/wireguard restarted/killed
-		echo "${BASHPID}" > '/tmp/getvpnport.pid'
-
-		# run function to set trap so we exit cleanly when kill issued
-		set_trap
-
-		# pia api url for endpoint status (port forwarding enabled true|false)
-		pia_vpninfo_api="https://serverlist.piaservers.net/vpninfo/servers/v4"
-
-		# jq (json query tool) query to list port forward enabled servers by hostname (dns)
-		jq_query_portforward_enabled='.regions | .[] | select(.port_forward=='true') | .dns'
-
-		# jq (json query tool) query to select current vpn remote server (from env var) and then get metadata server ip address
-		jq_query_metadata_ip=".regions | .[] | select(.dns | match(\"^${VPN_REMOTE_SERVER}\")) | .servers | .meta | .[] | .ip"
-
-		port_forward_status
-		get_incoming_port_nextgen
-
-		echo "[info] Script finished to assign incoming port"
+		echo "[info] VPN provider '${VPN_PROV}' not supported for automatic port forwarding, skipping incoming port assignment"
 
 	fi
 
 else
 
-	echo "[info] Application does not require port forwarding or VPN provider is != pia, skipping incoming port assignment"
+	echo "[info] Application does not require port forwarding, skipping incoming port assignment"
 
 fi

@@ -2,8 +2,11 @@
 
 # script to call multiple scripts in series to read and then write out values
 
-# blocking script, will wait for valid ip address assigned to tun0/tap0 (port written to file /tmp/getvpnip)
-source /root/getvpnip.sh
+# blocking script, will wait for valid ip address assigned to tun0/tap0 (port written to file /tmp/vpnip)
+source /root/tools.sh
+
+# run function from tools.sh
+get_vpn_gateway_ip
 
 # blocking script, will wait for name resolution to be operational (will write to /tmp/dnsfailure if failure)
 source /home/nobody/checkdns.sh www.google.com
