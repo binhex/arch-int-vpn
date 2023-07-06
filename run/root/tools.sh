@@ -157,7 +157,7 @@ function resolve_vpn_endpoints() {
 }
 
 # function to check ip address is in valid format (used for local tunnel ip and external ip)
-check_valid_ip() {
+function check_valid_ip() {
 
 	local_vpn_ip="$1"
 
@@ -174,6 +174,7 @@ check_valid_ip() {
 	return 0
 }
 
+# wait for valid ip for vpn adapter
 function check_vpn_adapter_ip() {
 
 	if [[ "${DEBUG}" == "true" ]]; then
@@ -198,8 +199,7 @@ function check_vpn_adapter_ip() {
 
 }
 
-# do search for /root/getvpnip.sh and replace with source /root/tools.sh and then import function get_vpn_gateway_ip
-
+# get vpn adapter gateway ip address
 function get_vpn_gateway_ip() {
 
 	if [[ "${DEBUG}" == "true" ]]; then
