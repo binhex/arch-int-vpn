@@ -75,17 +75,7 @@ function resolve_vpn_endpoints() {
 		# if the vpn_remote_server is NOT an ip address then resolve it
 		if ! echo "${vpn_remote_server}" | grep -P -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
 
-			retry_count=12
-
 			while true; do
-
-				retry_count=$((retry_count-1))
-
-				if [ "${retry_count}" -eq "0" ]; then
-
-					echo "[crit] '${vpn_remote_server}' cannot be resolved, possible DNS issues, exiting..." | ts '%Y-%m-%d %H:%M:%.S' ; exit 1
-
-				fi
 
 				# resolve hostname to ip address(es)
 				# note grep -m 8 is used to limit number of returned ip's per host to
