@@ -217,7 +217,7 @@ function protonvpn_get_incoming_port() {
 	for protocol in ${protocol_list}; do
 
 		# create a port forward for udp/tcp port
-		port=$(natpmpc -g "${vpn_gateway_ip}" -a 0 0 "${protocol}" 60 | grep -P -o -m 1 '(?<=Mapped public port\s)\d+')
+		port=$(natpmpc -g "${vpn_gateway_ip}" -a 1 0 "${protocol}" 60 | grep -P -o -m 1 '(?<=Mapped public port\s)\d+')
 		if [ -z "${port}" ]; then
 			echo "[warn] Unable to assign an incoming port for protocol ${protocol}, returning 1 from function..."
 			return 1
