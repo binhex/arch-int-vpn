@@ -117,7 +117,9 @@ if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
 	echo "[info] iptable_mangle support detected, adding fwmark for tables"
 
 	mark=0
-
+	# required as path did not exist in latest tarball (20/09/2023)
+	mkdir -p '/etc/iproute2'
+	
 	# setup route for application using set-mark to route traffic to lan
 	for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
