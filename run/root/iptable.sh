@@ -158,6 +158,8 @@ for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
 		# allows communication from any ip (ext or lan) to containers running in vpn network on specific ports
 		iptables -A INPUT -i "${docker_interface}" -p "${vpn_remote_protocol_item}" --dport "${incoming_ports_ext_item}" -j ACCEPT
+		# deny input to application from vpn
+		iptables -A INPUT -i "${VPN_DEVICE_TYPE}" -p "${vpn_remote_protocol_item}" --dport "${incoming_ports_ext_item}" -j DROP
 
 	done
 
@@ -173,6 +175,8 @@ for lan_network_item in "${lan_network_array[@]}"; do
 
 		# allows communication from lan ip to containers running in vpn network on specific ports
 		iptables -A INPUT -i "${docker_interface}" -s "${lan_network_item}" -d "${docker_network_cidr}" -p tcp --dport "${incoming_ports_lan_item}" -j ACCEPT
+		# deny input to application from vpn
+		iptables -A INPUT -i "${VPN_DEVICE_TYPE}" -p tcp --dport "${incoming_ports_lan_item}" -j DROP
 
 	done
 
@@ -236,6 +240,8 @@ for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
 
 		# return rule
 		iptables -A OUTPUT -o "${docker_interface}" -p "${vpn_remote_protocol_item}" --sport "${incoming_ports_ext_item}" -j ACCEPT
+		# deny output from application to vpn
+		iptables -A OUTPUT -o "${VPN_DEVICE_TYPE}" -p "${vpn_remote_protocol_item}" --sport "${incoming_ports_ext_item}" -j DROP
 
 	done
 
@@ -251,6 +257,8 @@ for lan_network_item in "${lan_network_array[@]}"; do
 
 		# return rule
 		iptables -A OUTPUT -o "${docker_interface}" -s "${docker_network_cidr}" -d "${lan_network_item}" -p tcp --sport "${incoming_ports_lan_item}" -j ACCEPT
+		# deny output from application to vpn
+		iptables -A OUTPUT -o "${VPN_DEVICE_TYPE}" -p tcp --sport "${incoming_ports_lan_item}" -j DROP
 
 	done
 
