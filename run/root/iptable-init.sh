@@ -1,14 +1,5 @@
 #!/bin/bash
 
-function identify_docker_interface() {
-
-	# identify docker bridge interface name by looking at defult route
-	docker_interface=$(ip -4 route ls | grep default | xargs | grep -o -P '(?<=dev )([^\s]+)')
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Docker interface defined as ${docker_interface}" | ts '%Y-%m-%d %H:%M:%.S'
-	fi
-}
-
 function add_vpn_endpoints_to_iptables_accept() {
 
 	local direction="${1}"
@@ -24,21 +15,27 @@ function add_vpn_endpoints_to_iptables_accept() {
 	# convert list of ip's back into an array (cannot export arrays in bash)
 	IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
 
-	# iterate over remote ip address array and create accept rules
-	for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
+	for docker_network in ${docker_networking}; do
 
-		# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
-		rule_exists=$(iptables -S | grep -e "-A ${io_flag} ${docker_interface} ${srcdst_flag} ${vpn_remote_ip_item} -j ACCEPT" || true)
+		# read in docker_networking from tools.sh
+		docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 
-		if [[ -z "${rule_exists}" ]]; then
+		# iterate over remote ip address array and create accept rules
+		for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
 
-			# accept input/output to remote vpn endpoint
-			iptables -A ${io_flag} "${docker_interface}" ${srcdst_flag} "${vpn_remote_ip_item}" -j ACCEPT
+			# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
+			rule_exists=$(iptables -S | grep -e "-A ${io_flag} ${docker_interface} ${srcdst_flag} ${vpn_remote_ip_item} -j ACCEPT" || true)
 
-		fi
+			if [[ -z "${rule_exists}" ]]; then
 
+				# accept input/output to remote vpn endpoint
+				iptables -A ${io_flag} "${docker_interface}" ${srcdst_flag} "${vpn_remote_ip_item}" -j ACCEPT
+
+			fi
+
+		done
+		
 	done
-
 }
 
 # sounrce in function to resolve endpoints
@@ -46,6 +43,9 @@ source '/root/tools.sh'
 
 # call function to resolve all vpn endpoints
 resolve_vpn_endpoints
+
+# run function from tools.sh, this creates global var 'docker_networking' used below
+get_docker_networking
 
 # check and set iptables drop
 if ! iptables -S | grep '^-P' > /dev/null 2>&1; then
@@ -91,9 +91,6 @@ else
 	ip6tables -P OUTPUT DROP > /dev/null
 
 fi
-
-# call function to identify docker interface
-identify_docker_interface
 
 # call function to add vpn remote endpoints to iptables input accept rule
 add_vpn_endpoints_to_iptables_accept "input"
