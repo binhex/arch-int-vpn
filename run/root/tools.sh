@@ -84,7 +84,7 @@ function get_docker_networking() {
 	docker_networking=$(echo "${docker_networking}" | sed -e 's/[[:space:]]*$//')
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Docker interface name, Gateway interface name, Gateway IP, Docker interface IP, Subnet mask and CIDR are defined as '${docker_networking}'"
+		echo "[debug] Docker interface name, Gateway interface name, Gateway IP, Docker interface IP, Subnet mask and CIDR are defined as '${docker_networking}'" | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
 }

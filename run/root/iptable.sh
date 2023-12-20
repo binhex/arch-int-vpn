@@ -33,10 +33,6 @@ source /root/tools.sh
 # run function from tools.sh, this creates global var 'docker_networking' used below
 get_docker_networking
 
-# read in gateway adapter and ip used below
-default_gateway_adapter="$(echo "${docker_networking}" | cut -d ',' -f 2 )"
-default_gateway_ip="$(echo "${docker_networking}" | cut -d ',' -f 3 )"
-
 # if vpn input ports specified then add to incoming ports external array
 if [[ -n "${VPN_INPUT_PORTS}" ]]; then
 
@@ -75,7 +71,11 @@ for lan_network_item in "${lan_network_array[@]}"; do
 	# strip whitespace from start and end of lan_network_item
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
-	echo "[info] Adding ${lan_network_item} as route via docker ${default_gateway_adapter}"
+	# read in docker_networking from tools.sh
+	default_gateway_adapter="$(echo "${docker_network}" | cut -d ',' -f 2 )"
+	default_gateway_ip="$(echo "${docker_network}" | cut -d ',' -f 3 )"
+
+	echo "[info] Adding ${lan_network_item} as route via adapter ${default_gateway_adapter}"
 	ip route add "${lan_network_item}" via "${default_gateway_ip}" dev "${default_gateway_adapter}"
 
 done
@@ -119,6 +119,7 @@ fi
 # input iptable rules
 ###
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
@@ -144,6 +145,7 @@ for docker_network in ${docker_networking}; do
 
 done
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
@@ -162,6 +164,7 @@ for docker_network in ${docker_networking}; do
 
 done
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
@@ -204,6 +207,7 @@ iptables -A INPUT -i "${VPN_DEVICE_TYPE}" -j ACCEPT
 # output iptable rules
 ###
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
@@ -214,6 +218,7 @@ for docker_network in ${docker_networking}; do
 
 done
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
@@ -251,6 +256,7 @@ if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
 
 fi
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
@@ -269,6 +275,7 @@ for docker_network in ${docker_networking}; do
 
 done
 
+# loop over docker adapters
 for docker_network in ${docker_networking}; do
 
 	# read in docker_networking from tools.sh
