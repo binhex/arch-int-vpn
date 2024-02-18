@@ -71,9 +71,9 @@ for lan_network_item in "${lan_network_array[@]}"; do
 	# strip whitespace from start and end of lan_network_item
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
-	# read in docker_networking from tools.sh
-	default_gateway_adapter="$(echo "${docker_network}" | cut -d ',' -f 2 )"
-	default_gateway_ip="$(echo "${docker_network}" | cut -d ',' -f 3 )"
+	# read in docker_networking from tools.sh, get 2nd and third values in first list item
+	default_gateway_adapter="$(echo "${docker_networking}" | cut -d ',' -f 2 )"
+	default_gateway_ip="$(echo "${docker_networking}" | cut -d ',' -f 3 )"
 
 	echo "[info] Adding ${lan_network_item} as route via adapter ${default_gateway_adapter}"
 	ip route add "${lan_network_item}" via "${default_gateway_ip}" dev "${default_gateway_adapter}"
