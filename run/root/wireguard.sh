@@ -207,7 +207,6 @@ function edit_wireguard() {
 
 function up_wireguard() {
 
-	echo "[info] Rerunning wireguard authentication..."
 	configure_wireguard
 
 	echo "[info] Attempting to bring WireGuard interface 'up'..."
@@ -233,6 +232,8 @@ function down_wireguard() {
 }
 
 function configure_wireguard() {
+
+	echo "[info] Configuring WireGuard..."
 
 	# if vpn provider is pia then get required dynamic configuration and write to wireguard config file
 	if [[ "${VPN_PROV}" == "pia" ]]; then
