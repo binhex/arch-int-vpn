@@ -366,6 +366,14 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		echo "[info] VPN_OUTPUT_PORTS not defined (via -e VPN_OUTPUT_PORTS), skipping allow for custom outgoing ports" | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
+	export ENABLE_STARTUP_SCRIPTS=$(echo "${ENABLE_STARTUP_SCRIPTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	if [[ ! -z "${ENABLE_STARTUP_SCRIPTS}" ]]; then
+		echo "[info] ENABLE_STARTUP_SCRIPTS defined as '${ENABLE_STARTUP_SCRIPTS}'" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[info] ENABLE_STARTUP_SCRIPTS not defined (via -e ENABLE_STARTUP_SCRIPTS), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
+		export ENABLE_STARTUP_SCRIPTS="no"
+	fi
+
 fi
 
 EOF
@@ -376,6 +384,40 @@ sed -i '/# ENVVARS_COMMON_PLACEHOLDER/{
     r /tmp/envvars_common_heredoc
 }' /usr/local/bin/init.sh
 rm /tmp/envvars_common_heredoc
+
+cat <<'EOF' > /tmp/config_heredoc
+
+if [[ "${ENABLE_STARTUP_SCRIPTS}" == "yes" ]]; then
+
+	# define path to scripts
+	base_path="/config"
+	user_script_path="${base_path}/scripts"
+
+	mkdir -p "${user_script_path}"
+
+	# find any scripts located in "${user_script_path}"
+	user_scripts=$(find "${user_script_path}" -maxdepth 1 -name '*sh' 2> '/dev/null' | xargs)
+
+	# loop over scripts, make executable and source
+	for i in ${user_scripts}; do
+		chmod +x "${i}"
+		echo "[info] Executing user script '${i}' in the foreground..." | ts '%Y-%m-%d %H:%M:%.S'
+		source "${i}" | ts '%Y-%m-%d %H:%M:%.S [script]'
+	done
+
+	# change ownership as we are running as root
+	chown -R nobody:users "${user_script_path}"
+
+fi
+
+EOF
+
+# replace config placeholder string with contents of file (here doc)
+sed -i '/# CONFIG_PLACEHOLDER/{
+    s/# CONFIG_PLACEHOLDER//g
+    r /tmp/config_heredoc
+}' /usr/local/bin/init.sh
+rm /tmp/config_heredoc
 
 # cleanup
 cleanup.sh

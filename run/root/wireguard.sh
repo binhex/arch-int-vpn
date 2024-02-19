@@ -207,8 +207,7 @@ function edit_wireguard() {
 
 function up_wireguard() {
 
-	echo "[info] Rerunning wireguard authentication..."
-	start_wireguard
+	configure_wireguard
 
 	echo "[info] Attempting to bring WireGuard interface 'up'..."
 	wg-quick up "${VPN_CONFIG}"
@@ -232,7 +231,9 @@ function down_wireguard() {
 
 }
 
-function start_wireguard() {
+function configure_wireguard() {
+
+	echo "[info] Configuring WireGuard..."
 
 	# if vpn provider is pia then get required dynamic configuration and write to wireguard config file
 	if [[ "${VPN_PROV}" == "pia" ]]; then
@@ -251,16 +252,14 @@ function start_wireguard() {
 
 	fi
 
-	# setup ip tables and routing for application
-	source /root/iptable.sh
 
 }
 
 # source in resolve dns and round robin ip's from functions
 source '/root/tools.sh'
 
-# kick off start
-start_wireguard
+# setup ip tables and routing for application
+source '/root/iptable.sh'
 
 # start watchdog function
 watchdog

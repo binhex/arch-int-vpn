@@ -43,6 +43,52 @@ function round_robin_endpoint_ip() {
 
 }
 
+# this function works out what docker network interfaces we have available and returns a
+# dictionary including gateway ip, gateway adapter, ip of adapter, subnet mask and cidr
+# format of net mask
+function get_docker_networking() {
+
+	# get space seperated list of docker adapters, excluding loopback and vpn adapter
+	docker_interfaces=$(ip link show | grep -v 'state DOWN' | cut -d ' ' -f 2 | grep -P -o '^[^@:]+' | grep -P -v "lo|${VPN_DEVICE_TYPE}" | xargs)
+
+	if [[ -z "${docker_interfaces}" ]]; then
+		echo "[warn] Unable to identify Docker network interfaces, exiting script..."
+		exit 1
+	fi
+
+	docker_networking=""
+
+	for docker_interface in ${docker_interfaces}; do
+
+		# identify adapter for local gateway
+		default_gateway_adapter=$(ip route show default | awk '/default/ {print $5}')
+
+		# identify ip for local gateway
+		default_gateway_ip=$(ip route show default | awk '/default/ {print $3}')
+
+		# identify ip for docker interface
+		docker_ip=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=inet\s)[^\s]+')
+
+		# identify netmask for docker interface
+		docker_mask=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=netmask\s)[^\s]+')
+
+		# convert netmask into cidr format, strip leading spaces
+		docker_network_cidr=$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+" | sed -e 's/^[[:space:]]*//')
+
+		# append docker interface, gateway adapter, gateway ip, ip, mask and cidr to string
+		docker_networking+="${docker_interface},${default_gateway_adapter},${default_gateway_ip},${docker_ip},${docker_mask},${docker_network_cidr} "
+
+	done
+
+	# remove trailing space
+	docker_networking=$(echo "${docker_networking}" | sed -e 's/[[:space:]]*$//')
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Docker interface name, Gateway interface name, Gateway IP, Docker interface IP, Subnet mask and CIDR are defined as '${docker_networking}'" | ts '%Y-%m-%d %H:%M:%.S'
+	fi
+
+}
+
 # this function must be run as root as it overwrites /etc/hosts
 function resolve_vpn_endpoints() {
 
@@ -83,7 +129,7 @@ function resolve_vpn_endpoints() {
 				vpn_remote_item_dns_answer=$(drill -a -4 "${vpn_remote_server}" | grep -v 'SERVER' | grep -m 8 -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | xargs)
 
 				# check answer is not blank, if it is blank assume bad ns
-				if [[ ! -z "${vpn_remote_item_dns_answer}" ]]; then
+				if [[ -n "${vpn_remote_item_dns_answer}" ]]; then
 
 					if [[ "${DEBUG}" == "true" ]]; then
 						echo "[debug] DNS operational, we can resolve name '${vpn_remote_server}' to address '${vpn_remote_item_dns_answer}'" | ts '%Y-%m-%d %H:%M:%.S'
@@ -127,7 +173,7 @@ function resolve_vpn_endpoints() {
 			if ! grep -P -o -m 1 "${vpn_remote_server}" < '/etc/hosts'; then
 
 				# if name resolution to ip is not blank then write to hosts file
-				if [[ ! -z "${remote_dns_answer_first}" ]]; then
+				if [[ -n "${remote_dns_answer_first}" ]]; then
 					echo "${remote_dns_answer_first}	${vpn_remote_server}" >> /etc/hosts
 				fi
 
