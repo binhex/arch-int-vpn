@@ -102,6 +102,12 @@ if [[ "${APPLICATION}" != "sabnzbd" ]] && [[ "${APPLICATION}" != "privoxy" ]]; t
 		return 1
 
 	else
+		
+		if [[ "${VPN_AIRVPN_DNS}" == "true" ]]; then
+			ext_ip=$(cat /tmp/getvpnextip)
+			echo "[info] Set nameserver to $ext_ip"
+			echo "nameserver $ext_ip" > /etc/resolv.conf
+		fi
 
 		echo "[info] Successfully retrieved external IP address ${result}"
 		return 0
