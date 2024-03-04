@@ -299,6 +299,45 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 	export LAN_NETWORK=$(echo "${LAN_NETWORK}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	if [[ ! -z "${LAN_NETWORK}" ]]; then
 		echo "[info] LAN_NETWORK defined as '${LAN_NETWORK}'" | ts '%Y-%m-%d %H:%M:%.S'
+		faq_vpn_url="https://github.com/binhex/documentation/blob/master/docker/faq/vpn.md"
+
+		# split comma separated string into list from LAN_NETWORK env variable
+		IFS=',' read -ra lan_network_list <<< "${LAN_NETWORK}"
+		for i in "${lan_network_list[@]}"; do
+			if echo "${i}" | grep -q -P -m 1 '\/8$'; then
+				if echo "${i}" | grep -q -v -P -m 1 '\.0\.0\.0\/8$'; then
+					echo "[warn] Network '${i}' incorrectly defined, see Q4. ${faq_vpn_url}" | ts '%Y-%m-%d %H:%M:%.S'
+					first_octet=$(echo "${i}" | grep -P -o -m 1 '^\d{1,3}')
+					i="${first_octet}.0.0.0/8"
+					echo "[info] Network corrected to '${i}'" | ts '%Y-%m-%d %H:%M:%.S'
+				fi
+			elif echo "${i}" | grep -q -P -m 1 '\/16$'; then
+				if echo "${i}" | grep -q -v -P -m 1 '\.0\.0\/16$'; then
+					echo "[warn] Network '${i}' incorrectly defined, see Q4. ${faq_vpn_url}" | ts '%Y-%m-%d %H:%M:%.S'
+					first_second_octet=$(echo "${i}" | grep -P -o -m 1 '^\d{1,3}\.\d{1,3}')
+					i="${first_second_octet}.0.0/16"
+					echo "[info] Network corrected to '${i}'" | ts '%Y-%m-%d %H:%M:%.S'
+				fi
+			elif echo "${i}" | grep -q -P -m 1 '\/24$'; then
+				if echo "${i}" | grep -q -v -P -m 1 '\.0\/24$'; then
+					echo "[warn] Network '${i}' incorrectly defined, see Q4. ${faq_vpn_url}" | ts '%Y-%m-%d %H:%M:%.S'
+					first_second_third_octet=$(echo "${i}" | grep -P -o -m 1 '^\d{1,3}\.\d{1,3}\.\d{1,3}')
+					i="${first_second_third_octet}.0/24"
+					echo "[info] Network corrected to '${i}'" | ts '%Y-%m-%d %H:%M:%.S'
+				fi
+			fi
+
+			# strip out spaces
+			i=$(echo "${i}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+
+			# append to variable with comma
+			NETWORK+="${i},"
+		done
+
+		# strip out trailing comma
+		export LAN_NETWORK=${NETWORK%?}
+
+		echo "[info] LAN_NETWORK exported as '${LAN_NETWORK}'" | ts '%Y-%m-%d %H:%M:%.S'
 	else
 		echo "[crit] LAN_NETWORK not defined (via -e LAN_NETWORK), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
 	fi
