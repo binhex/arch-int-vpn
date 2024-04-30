@@ -338,7 +338,7 @@ function set_trap() {
 	# kill all child processes and exit with exit code 1
 	# required to allow us to stop this script as it has several sleep
 	# commands and background function
-	trap 'kill $(jobs -p); exit 1' INT TERM EXIT
+	trap 'kill $(jobs -p) >/dev/null 2>&1; exit 1' INT TERM EXIT
 
 }
 
