@@ -20,7 +20,7 @@ mv /tmp/scripts-master/shell/arch/docker/*.sh /usr/local/bin/
 ####
 
 # define pacman packages
-pacman_packages="openssl-1.1 kmod openvpn privoxy bind-tools gnu-netcat ipcalc wireguard-tools openresolv libnatpmp"
+pacman_packages="openssl-1.1 kmod openvpn privoxy bind-tools gnu-netcat ipcalc wireguard-tools openresolv libnatpmp ldns"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
