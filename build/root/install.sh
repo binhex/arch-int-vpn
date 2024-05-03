@@ -57,7 +57,7 @@ else
 fi
 
 # prevent pacman upgrading openssl (filesystem is from arch-base ignore)
-sed -i -e 's~#IgnorePkg.*~IgnorePkg = filesystem openssl~g' '/etc/pacman.conf'
+sed -i -e 's~IgnorePkg.*~IgnorePkg = filesystem openssl~g' '/etc/pacman.conf'
 
 # env vars
 ####
