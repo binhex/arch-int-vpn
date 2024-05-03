@@ -52,7 +52,7 @@ elif [[ "${TARGETARCH}" == "arm64" ]]; then
 	curl -o /tmp/openssl.tar.xz -L https://mirror.yandex.ru/archlinux-arm/aarch64/core/openssl-3.2.1-1-aarch64.pkg.tar.xz
 	pacman -U /tmp/openssl.tar.xz --noconfirm
 else
-	echo "[warn] TARGETARCH not supported for openssl downgrade, exiting..."
+	echo "[warn] TARGETARCH '${TARGETARCH}' not supported for OpenSSL downgrade, exiting..."
 	exit 1
 fi
 
