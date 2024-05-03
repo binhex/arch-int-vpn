@@ -3,6 +3,22 @@
 # exit script if return code != 0
 set -e
 
+# release tag name from buildx arg, stripped of build ver using string manipulation
+RELEASETAG="${1//-[0-9][0-9]/}"
+
+# target arch from buildx arg
+TARGETARCH="${2}"
+
+if [[ -z "${RELEASETAG}" ]]; then
+	echo "[warn] Release tag name from build arg is empty, exiting script..."
+	exit 1
+fi
+
+if [[ -z "${TARGETARCH}" ]]; then
+	echo "[warn] Target architecture name from build arg is empty, exiting script..."
+	exit 1
+fi
+
 # build scripts
 ####
 
@@ -29,8 +45,19 @@ pacman -S --needed $pacman_packages --noconfirm
 
 # workaround to pia related crl malformed validation dates
 # this downgrades openssl which ignores the malformed crl validation dates
-curl -o /tmp/openssl.zst -L https://archive.archlinux.org/packages/o/openssl/openssl-3.2.1-1-x86_64.pkg.tar.zst
-pacman -U /tmp/openssl.zst --noconfirm
+if [[ "${TARGETARCH}" == "amd64" ]]; then
+	curl -o /tmp/openssl.zst -L https://archive.archlinux.org/packages/o/openssl/openssl-3.2.1-1-x86_64.pkg.tar.zst
+	pacman -U /tmp/openssl.zst --noconfirm
+elif [[ "${TARGETARCH}" == "arm64" ]]; then
+	curl -o /tmp/openssl.tar.xz -L https://mirror.yandex.ru/archlinux-arm/aarch64/core/openssl-3.2.1-1-aarch64.pkg.tar.xz
+	pacman -U /tmp/openssl.tar.xz --noconfirm
+else
+	echo "[warn] TARGETARCH not supported for openssl downgrade, exiting..."
+	exit 1
+fi
+
+# prevent pacman upgrading openssl (filesystem is from arch-base ignore)
+sed -i -e 's~#IgnorePkg.*~IgnorePkg = filesystem openssl~g' '/etc/pacman.conf'
 
 # env vars
 ####
