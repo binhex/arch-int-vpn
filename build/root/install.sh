@@ -15,7 +15,6 @@ unzip /tmp/scripts-master.zip -d /tmp
 # move shell scripts to /root
 mv /tmp/scripts-master/shell/arch/docker/*.sh /usr/local/bin/
 
-
 # pacman packages
 ####
 
@@ -24,6 +23,14 @@ pacman_packages="openssl-1.1 kmod openvpn privoxy bind-tools gnu-netcat ipcalc w
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
+
+# custom
+####
+
+# workaround to pia related crl malformed validation dates
+# this downgrades openssl which ignores the malformed crl validation dates
+curl -o /tmp/openssl.zst -L https://archive.archlinux.org/packages/o/openssl/openssl-3.2.1-1-x86_64.pkg.tar.zst
+pacman -U /tmp/openssl.zst --noconfirm
 
 # env vars
 ####
