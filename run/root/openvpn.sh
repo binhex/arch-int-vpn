@@ -19,6 +19,13 @@ function create_openvpn_cli() {
 
 	fi
 
+	if [[ "${VPN_AIRVPN_DNS}" == "true" ]]; then
+
+		# add airvpndns flag
+		openvpn_cli="${openvpn_cli} --setenv VPN_AIRVPN_DNS '${VPN_AIRVPN_DNS}'"
+
+	fi
+
 	if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
 
 		# add additional flags to pass credentials

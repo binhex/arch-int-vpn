@@ -400,6 +400,15 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		fi
 	fi
 
+	if [[ "${VPN_AIRVPN_DNS}" == "true" ]]; then
+		if [[ ! -z "${VPN_AIRVPN_DNS}" ]]; then
+			echo "[info] VPN_AIRVPN_DNS defined as '${VPN_AIRVPN_DNS}'" | ts '%Y-%m-%d %H:%M:%.S'
+			export VPN_AIRVPN_DNS=$(echo "${VPN_AIRVPN_DNS}")
+		else
+			echo "[info] VPN_AIRVPN_DNS not set, set to true if airvpn dns is to be used" | ts '%Y-%m-%d %H:%M:%.S'
+		fi
+	fi	
+
 	if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		export STRICT_PORT_FORWARD=$(echo "${STRICT_PORT_FORWARD}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
