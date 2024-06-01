@@ -49,7 +49,7 @@ function round_robin_endpoint_ip() {
 function get_docker_networking() {
 
 	# get space seperated list of docker adapters, excluding loopback and vpn adapter
-	docker_interfaces=$(ip link show | grep -v 'state DOWN' | cut -d ' ' -f 2 | grep -P -o '^[^@:]+' | grep -P -v "lo|${VPN_DEVICE_TYPE}" | xargs)
+	docker_interfaces=$(ip link show | grep -v 'state DOWN' | cut -d ' ' -f 2 | grep -P -o '^[^@:]+' | grep -P -v "^(lo|${VPN_DEVICE_TYPE})$" | xargs)
 
 	if [[ -z "${docker_interfaces}" ]]; then
 		echo "[warn] Unable to identify Docker network interfaces, exiting script..."
