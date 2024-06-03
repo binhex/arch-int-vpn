@@ -92,6 +92,18 @@ else
 
 		if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
+			if [[ "${VPN_PROV}" == "pia" ]]; then
+
+				# turn off compression, required to bypass pia crl-verify issue with pia
+				# see https://github.com/binhex/arch-qbittorrentvpn/issues/233
+				sed -i -e 's~^compress~comp-lzo no~g' "${VPN_CONFIG}"
+
+				# remove crl-verify as pia verification has invalid date
+				# see https://github.com/binhex/arch-qbittorrentvpn/issues/233
+				sed -i '/<crl-verify>/,/<\/crl-verify>/d' "${VPN_CONFIG}"
+
+			fi
+
 			echo "[debug] Directory listing of files in /config/openvpn/ as follows" ; ls -al '/config/openvpn'
 			echo "[debug] Contents of OpenVPN config file '${VPN_CONFIG}' as follows..." ; cat "${VPN_CONFIG}"
 

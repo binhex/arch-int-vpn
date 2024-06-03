@@ -25,7 +25,7 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 fi
 
 # source in tools script
-source /root/tools.sh
+source tools.sh
 
 # run function from tools.sh, this creates global var 'docker_networking' used below
 get_docker_networking

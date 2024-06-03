@@ -34,12 +34,12 @@ function add_vpn_endpoints_to_iptables_accept() {
 			fi
 
 		done
-		
+
 	done
 }
 
 # sounrce in function to resolve endpoints
-source '/root/tools.sh'
+source tools.sh
 
 # call function to resolve all vpn endpoints
 resolve_vpn_endpoints

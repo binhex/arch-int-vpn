@@ -14,17 +14,20 @@ ARG TARGETARCH
 # add install bash script
 ADD build/root/*.sh /root/
 
-# add bash script to run openvpn
+# add bash script for root user
 ADD run/root/*.sh /root/
 
-# add bash script to run privoxy
+# add bash script for nobody user
 ADD run/nobody/*.sh /home/nobody/
+
+# add bash script for local user
+ADD run/local/*.sh /usr/local/bin/
 
 # install app
 #############
 
 # make executable and run bash scripts to install app
-RUN chmod +x /root/*.sh /home/nobody/*.sh && \
+RUN chmod +x /root/*.sh /home/nobody/*.sh /usr/local/bin/*.sh && \
 	/bin/bash /root/install.sh "${RELEASETAG}" "${TARGETARCH}"
 
 # docker settings

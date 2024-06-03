@@ -40,25 +40,6 @@ pacman_packages="openssl-1.1 kmod openvpn privoxy bind-tools gnu-netcat ipcalc w
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
 
-# custom
-####
-
-# workaround to pia related crl malformed validation dates
-# this downgrades openssl which ignores the malformed crl validation dates
-if [[ "${TARGETARCH}" == "amd64" ]]; then
-	curl -o /tmp/openssl.zst -L https://archive.archlinux.org/packages/o/openssl/openssl-3.2.1-1-x86_64.pkg.tar.zst
-	pacman -U /tmp/openssl.zst --noconfirm
-elif [[ "${TARGETARCH}" == "arm64" ]]; then
-	curl -o /tmp/openssl.tar.xz -L https://mirror.yandex.ru/archlinux-arm/aarch64/core/openssl-3.2.1-1-aarch64.pkg.tar.xz
-	pacman -U /tmp/openssl.tar.xz --noconfirm
-else
-	echo "[warn] TARGETARCH '${TARGETARCH}' not supported for OpenSSL downgrade, exiting..."
-	exit 1
-fi
-
-# prevent pacman upgrading openssl (filesystem is from arch-base ignore)
-sed -i -e 's~IgnorePkg.*~IgnorePkg = filesystem openssl~g' '/etc/pacman.conf'
-
 # env vars
 ####
 
