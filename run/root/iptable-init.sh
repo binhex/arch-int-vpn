@@ -116,7 +116,10 @@ function add_name_servers() {
 		# strip whitespace from start and end of name_server_item
 		name_server_item=$(echo "${name_server_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
-		echo "[info] Adding ${name_server_item} to /etc/resolv.conf"
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Adding ${name_server_item} to /etc/resolv.conf..." | ts '%Y-%m-%d %H:%M:%.S'
+		fi
+
 		echo "nameserver ${name_server_item}" >> /etc/resolv.conf
 
 	done
