@@ -126,23 +126,6 @@ else
 
 	fi
 
-	# split comma separated string into list from NAME_SERVERS env variable
-	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
-
-	# remove existing ns, docker injects ns from host and isp ns can block/hijack
-	> /etc/resolv.conf
-
-	# process name servers in the list
-	for name_server_item in "${name_server_list[@]}"; do
-
-		# strip whitespace from start and end of name_server_item
-		name_server_item=$(echo "${name_server_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
-
-		echo "[info] Adding ${name_server_item} to /etc/resolv.conf"
-		echo "nameserver ${name_server_item}" >> /etc/resolv.conf
-
-	done
-
 	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
 		# check if we have tun module available

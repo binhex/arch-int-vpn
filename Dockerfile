@@ -29,9 +29,3 @@ ADD run/local/*.sh /usr/local/bin/
 # make executable and run bash scripts to install app
 RUN chmod +x /root/*.sh /home/nobody/*.sh /usr/local/bin/*.sh && \
 	/bin/bash /root/install.sh "${RELEASETAG}" "${TARGETARCH}"
-
-# docker settings
-#################
-
-# expose port for privoxy
-EXPOSE 8118

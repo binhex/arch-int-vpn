@@ -7,3 +7,6 @@ if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
 		rm -f '/tmp/getvpnport.pid'
 	fi
 fi
+
+# create file that denotes tunnel as down to prevent dns resolution check
+touch '/tmp/tunneldown' && chmod +r '/tmp/tunneldown'

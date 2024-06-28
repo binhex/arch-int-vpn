@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function add_vpn_endpoints_to_iptables_accept() {
+function accept_vpn_endpoints() {
 
 	local direction="${1}"
 
@@ -36,64 +36,125 @@ function add_vpn_endpoints_to_iptables_accept() {
 		done
 
 	done
+
 }
 
-# sounrce in function to resolve endpoints
-source tools.sh
+function drop_all_ipv4() {
 
-# call function to resolve all vpn endpoints
-resolve_vpn_endpoints
+	# check and set iptables drop
+	if ! iptables -S | grep '^-P' > /dev/null 2>&1; then
 
-# run function from tools.sh, this creates global var 'docker_networking' used below
-get_docker_networking
+			echo "[crit] iptables default policies not available, exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
+			exit 1
 
-# check and set iptables drop
-if ! iptables -S | grep '^-P' > /dev/null 2>&1; then
+	else
 
-        echo "[crit] iptables default policies not available, exiting script..." | ts '%Y-%m-%d %H:%M:%.S'
-		exit 1
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] iptables default policies available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+		fi
 
-else
+		# set policy to drop ipv4 for input
+		iptables -P INPUT DROP > /dev/null
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] iptables default policies available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+		# set policy to drop ipv4 for forward
+		iptables -P FORWARD DROP > /dev/null
+
+		# set policy to drop ipv4 for output
+		iptables -P OUTPUT DROP > /dev/null
+
 	fi
+}
 
-	# set policy to drop ipv4 for input
-	iptables -P INPUT DROP > /dev/null
+function drop_all_ipv6() {
 
-	# set policy to drop ipv4 for forward
-	iptables -P FORWARD DROP > /dev/null
+	# check and set ip6tables drop
+	if ! ip6tables -S | grep '^-P' > /dev/null 2>&1; then
 
-	# set policy to drop ipv4 for output
-	iptables -P OUTPUT DROP > /dev/null
+			echo "[warn] ip6tables default policies not available, skipping ip6tables drops" | ts '%Y-%m-%d %H:%M:%.S'
 
-fi
+	else
 
-# check and set ip6tables drop
-if ! ip6tables -S | grep '^-P' > /dev/null 2>&1; then
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] ip6tables default policies available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+		fi
 
-        echo "[warn] ip6tables default policies not available, skipping ip6tables drops" | ts '%Y-%m-%d %H:%M:%.S'
+		# set policy to drop ipv6 for input
+		ip6tables -P INPUT DROP > /dev/null
 
-else
+		# set policy to drop ipv6 for forward
+		ip6tables -P FORWARD DROP > /dev/null
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] ip6tables default policies available, setting policy to drop..." | ts '%Y-%m-%d %H:%M:%.S'
+		# set policy to drop ipv6 for output
+		ip6tables -P OUTPUT DROP > /dev/null
+
 	fi
+}
 
-	# set policy to drop ipv6 for input
-	ip6tables -P INPUT DROP > /dev/null
+function name_resolution() {
 
-	# set policy to drop ipv6 for forward
-	ip6tables -P FORWARD DROP > /dev/null
+	rule_flag="${1}"
 
-	# set policy to drop ipv6 for output
-	ip6tables -P OUTPUT DROP > /dev/null
+	# name resolution for ipv4
+	iptables "${rule_flag}" INPUT -p udp -m udp --sport 53 -j ACCEPT
+	iptables "${rule_flag}" OUTPUT -p udp -m udp --dport 53 -j ACCEPT
+	iptables "${rule_flag}" INPUT -p tcp -m tcp --sport 53 -j ACCEPT
+	iptables "${rule_flag}" OUTPUT -p tcp -m tcp --dport 53 -j ACCEPT
 
-fi
+}
 
-# call function to add vpn remote endpoints to iptables input accept rule
-add_vpn_endpoints_to_iptables_accept "input"
+function add_name_servers() {
 
-# call function to add vpn remote endpoints to iptables output accept rule
-add_vpn_endpoints_to_iptables_accept "output"
+	# split comma separated string into list from NAME_SERVERS env variable
+	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
+
+	# remove existing ns, docker injects ns from host and isp ns can block/hijack
+	> /etc/resolv.conf
+
+	# process name servers in the list
+	for name_server_item in "${name_server_list[@]}"; do
+
+		# strip whitespace from start and end of name_server_item
+		name_server_item=$(echo "${name_server_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+
+		echo "[info] Adding ${name_server_item} to /etc/resolv.conf"
+		echo "nameserver ${name_server_item}" >> /etc/resolv.conf
+
+	done
+
+}
+
+function main() {
+
+	# drop all for ipv4
+	drop_all_ipv4
+
+	# drop all for ipv6
+	drop_all_ipv6
+
+	# add name servers from env var NAME_SERVERS
+	add_name_servers
+
+	# source in tools script
+	source tools.sh
+
+	# append accept name resolution rules
+	name_resolution '-A'
+
+	# call function from tools.sh to resolve all vpn endpoints
+	resolve_vpn_endpoints
+
+	# delete accept name resolution rules
+	name_resolution '-D'
+
+	# run function from tools.sh to create global var 'docker_networking' used below
+	get_docker_networking
+
+	# call function to add vpn remote endpoints to iptables input accept rule
+	accept_vpn_endpoints "input"
+
+	# call function to add vpn remote endpoints to iptables output accept rule
+	accept_vpn_endpoints "output"
+
+}
+
+main

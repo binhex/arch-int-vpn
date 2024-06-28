@@ -171,7 +171,7 @@ function watchdog() {
 
 		# if flagged by above scripts then down vpn tunnel
 		if [ "${down}" == "true" ]; then
-			down_wireguard
+			run_wireguard 'down'
 		fi
 
 		# check if wireguard 'peer' exists, if not assume wireguard connection is down and bring up
@@ -179,7 +179,7 @@ function watchdog() {
 		if [ "${?}"  -ne 0 ]; then
 
 			# run wireguard, will run as daemon background process
-			up_wireguard
+			run_wireguard 'up'
 
 		fi
 
@@ -205,28 +205,32 @@ function edit_wireguard() {
 
 }
 
-function up_wireguard() {
+function run_wireguard() {
 
-	configure_wireguard
+	wireguard_action="${1}"
 
-	echo "[info] Attempting to bring WireGuard interface 'up'..."
-	wg-quick up "${VPN_CONFIG}"
-	if [ "${?}" -eq 0 ]; then
-		echo "[info] WireGuard interface 'up'"
-	else
-		echo "[warn] WireGuard interface failed to come 'up', exit code is '${?}'"
+	if [[ "${wireguard_action}" == 'up' ]]; then
+		configure_wireguard
 	fi
 
-}
+	echo "[info] Attempting to bring WireGuard interface '${wireguard_action}'..."
 
-function down_wireguard() {
-
-	echo "[info] Attempting to bring WireGuard interface 'down'..."
-	wg-quick down "${VPN_CONFIG}"
-	if [ "${?}" -eq 0 ]; then
-		echo "[info] WireGuard interface 'down'"
+	if [[ "${USERSPACE_WIREGUARD}" == 'yes' ]]; then
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Running WireGuard userspace implementation 'boringtun-cli'..."
+		fi
+		WG_QUICK_USERSPACE_IMPLEMENTATION=boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"
 	else
-		echo "[warn] WireGuard interface failed to bring 'down', exit code is '${?}'"
+		if [[ "${DEBUG}" == "true" ]]; then
+			echo "[debug] Running WireGuard kernel implementation..."
+		fi
+		wg-quick "${wireguard_action}" "${VPN_CONFIG}"
+	fi
+
+	if [ "${?}" -eq 0 ]; then
+		echo "[info] WireGuard interface '${wireguard_action}'"
+	else
+		echo "[warn] WireGuard interface failed to come '${wireguard_action}', exit code is '${?}'"
 	fi
 
 }

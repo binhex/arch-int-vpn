@@ -35,10 +35,26 @@ mv /tmp/scripts-master/shell/arch/docker/*.sh /usr/local/bin/
 ####
 
 # define pacman packages
-pacman_packages="openssl-1.1 kmod openvpn privoxy bind-tools gnu-netcat ipcalc wireguard-tools openresolv libnatpmp ldns"
+pacman_packages="base-devel cargo openssl-1.1 kmod openvpn privoxy bind-tools ipcalc wireguard-tools openresolv libnatpmp ldns"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
+
+# github release - microsocks
+####
+
+# download and compile microsocks
+github.sh --install-path "/tmp/compile" --github-owner "rofl0r" --github-repo "microsocks" --compile-src 'make install'
+
+# cargo (rust) install - boringtun-cli
+####
+
+# install boringtun-cli using rust tool 'cargo'
+cargo install boringtun-cli
+
+# move and chmod compiled binary to /usr/local/bin
+mv /home/nobody/.cargo/bin/boringtun-cli /usr/local/bin/
+chmod +x /usr/local/bin/boringtun-cli
 
 # env vars
 ####
@@ -69,6 +85,10 @@ else
 fi
 
 if [[ "${VPN_ENABLED}" == "yes" ]]; then
+
+	# listen for incoming connections on port 1234 from other containers, this is used to trigger
+	# the restart of the containers sharing the network if the vpn container is restarted.
+	nohup nc -l -s 127.0.0.1 -p 1234 -k &>> '/tmp/nc_listen.log' &
 
 	# get values from env vars as defined by user
 	export VPN_CLIENT=$(echo "${VPN_CLIENT}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
@@ -183,6 +203,14 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		# protocol for wireguard is always udp
 		echo "[info] VPN_REMOTE_PROTOCOL defined as 'udp'" | ts '%Y-%m-%d %H:%M:%.S'
 		export VPN_REMOTE_PROTOCOL="udp"
+
+		export USERSPACE_WIREGUARD=$(echo "${USERSPACE_WIREGUARD}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+		if [[ ! -z "${USERSPACE_WIREGUARD}" ]]; then
+			echo "[info] USERSPACE_WIREGUARD defined as '${USERSPACE_WIREGUARD}'" | ts '%Y-%m-%d %H:%M:%.S'
+		else
+			echo "[info] USERSPACE_WIREGUARD not defined (via -e USERSPACE_WIREGUARD), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
+			export USERSPACE_WIREGUARD="no"
+		fi
 
 	elif [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
@@ -393,14 +421,6 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 	fi
 
-	export ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
-	if [[ ! -z "${ENABLE_PRIVOXY}" ]]; then
-		echo "[info] ENABLE_PRIVOXY defined as '${ENABLE_PRIVOXY}'" | ts '%Y-%m-%d %H:%M:%.S'
-	else
-		echo "[warn] ENABLE_PRIVOXY not defined (via -e ENABLE_PRIVOXY), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
-		export ENABLE_PRIVOXY="no"
-	fi
-
 	export ADDITIONAL_PORTS=$(echo "${ADDITIONAL_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	export VPN_INPUT_PORTS=$(echo "${VPN_INPUT_PORTS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 	if [[ ! -z "${ADDITIONAL_PORTS}" ]]; then
@@ -428,6 +448,45 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		export ENABLE_STARTUP_SCRIPTS="no"
 	fi
 
+fi
+
+export ENABLE_SOCKS=$(echo "${ENABLE_SOCKS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+if [[ ! -z "${ENABLE_SOCKS}" ]]; then
+	echo "[info] ENABLE_SOCKS defined as '${ENABLE_SOCKS}'" | ts '%Y-%m-%d %H:%M:%.S'
+else
+	echo "[warn] ENABLE_SOCKS not defined (via -e ENABLE_SOCKS), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
+	export ENABLE_SOCKS="no"
+fi
+
+export ENABLE_PRIVOXY=$(echo "${ENABLE_PRIVOXY}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+if [[ ! -z "${ENABLE_PRIVOXY}" ]]; then
+	echo "[info] ENABLE_PRIVOXY defined as '${ENABLE_PRIVOXY}'" | ts '%Y-%m-%d %H:%M:%.S'
+else
+	echo "[warn] ENABLE_PRIVOXY not defined (via -e ENABLE_PRIVOXY), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
+	export ENABLE_PRIVOXY="no"
+fi
+
+if [[ "${ENABLE_SOCKS}" == "yes" ]]; then
+
+	export SOCKS_USER=$(echo "${SOCKS_USER}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	if [[ ! -z "${SOCKS_USER}" ]]; then
+		echo "[info] SOCKS_USER defined as '${SOCKS_USER}'" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[warn] SOCKS_USER not defined (via -e SOCKS_USER), disabling authentication for microsocks" | ts '%Y-%m-%d %H:%M:%.S'
+		export SOCKS_USER=""
+	fi
+
+	if [[ -n "${SOCKS_USER}" ]]; then
+
+		export SOCKS_PASS=$(echo "${SOCKS_PASS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+		if [[ ! -z "${SOCKS_PASS}" ]]; then
+			echo "[info] SOCKS_PASS defined as '${SOCKS_PASS}'" | ts '%Y-%m-%d %H:%M:%.S'
+		else
+			echo "[warn] SOCKS_PASS not defined (via -e SOCKS_PASS), defaulting to 'socks'" | ts '%Y-%m-%d %H:%M:%.S'
+			export SOCKS_PASS="socks"
+		fi
+
+	fi
 fi
 
 EOF

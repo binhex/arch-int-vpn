@@ -14,7 +14,7 @@ elif [[ "${APPLICATION}" == "deluge" ]]; then
 	incoming_ports_lan_array+=(58846)
 fi
 
-# if microsocks enabled (privoxyvpn only) then add port for microsocks to incoming ports lan array
+# if microsocks enabled then add port for microsocks to incoming ports lan array
 if [[ "${ENABLE_SOCKS}" == "yes" ]]; then
 	incoming_ports_lan_array+=(9118)
 fi
