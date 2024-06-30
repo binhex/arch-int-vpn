@@ -336,6 +336,14 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 	fi
 
+	export NAME_SERVERS=$(echo "${NAME_SERVERS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
+	if [[ ! -z "${NAME_SERVERS}" ]]; then
+		echo "[info] NAME_SERVERS defined as '${NAME_SERVERS}'" | ts '%Y-%m-%d %H:%M:%.S'
+	else
+		echo "[warn] NAME_SERVERS not defined (via -e NAME_SERVERS), defaulting to name servers defined in readme.md" | ts '%Y-%m-%d %H:%M:%.S'
+		export NAME_SERVERS="84.200.69.80,37.235.1.174,1.1.1.1,37.235.1.177,84.200.70.40,1.0.0.1"
+	fi
+
 	# resolve vpn endpoints, drop all, allow vpn endpoints, if client pia then also allow pia api and pia website
 	source /root/iptable-init.sh
 
@@ -383,14 +391,6 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		echo "[info] LAN_NETWORK exported as '${LAN_NETWORK}'" | ts '%Y-%m-%d %H:%M:%.S'
 	else
 		echo "[crit] LAN_NETWORK not defined (via -e LAN_NETWORK), exiting..." | ts '%Y-%m-%d %H:%M:%.S' && exit 1
-	fi
-
-	export NAME_SERVERS=$(echo "${NAME_SERVERS}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
-	if [[ ! -z "${NAME_SERVERS}" ]]; then
-		echo "[info] NAME_SERVERS defined as '${NAME_SERVERS}'" | ts '%Y-%m-%d %H:%M:%.S'
-	else
-		echo "[warn] NAME_SERVERS not defined (via -e NAME_SERVERS), defaulting to name servers defined in readme.md" | ts '%Y-%m-%d %H:%M:%.S'
-		export NAME_SERVERS="84.200.69.80,37.235.1.174,1.1.1.1,37.235.1.177,84.200.70.40,1.0.0.1"
 	fi
 
 	if [[ "${VPN_PROV}" != "airvpn" ]]; then
