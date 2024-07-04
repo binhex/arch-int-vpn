@@ -107,7 +107,12 @@ function add_name_servers() {
 	# split comma separated string into list from NAME_SERVERS env variable
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
 
-	# remove existing ns, docker injects ns from host and isp ns can block/hijack
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Showing name servers in '/etc/resolv.conf' before overwrite from NAME_SERVERS..." | ts '%Y-%m-%d %H:%M:%.S'
+		cat '/etc/resolv.conf' | ts '%Y-%m-%d %H:%M:%.S [debug]'
+	fi
+
+	# remove all existing name servers inherited from host
 	> /etc/resolv.conf
 
 	# process name servers in the list
@@ -116,13 +121,15 @@ function add_name_servers() {
 		# strip whitespace from start and end of name_server_item
 		name_server_item=$(echo "${name_server_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Adding ${name_server_item} to /etc/resolv.conf..." | ts '%Y-%m-%d %H:%M:%.S'
-		fi
-
+		# append name server to /etc/resolv.conf
 		echo "nameserver ${name_server_item}" >> /etc/resolv.conf
 
 	done
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] Showing name servers in '/etc/resolv.conf' after overwrite from NAME_SERVERS..." | ts '%Y-%m-%d %H:%M:%.S'
+		cat '/etc/resolv.conf' | ts '%Y-%m-%d %H:%M:%.S [debug]'
+	fi
 
 }
 
@@ -133,9 +140,6 @@ function main() {
 
 	# drop all for ipv6
 	drop_all_ipv6
-
-	# add name servers from env var NAME_SERVERS
-	add_name_servers
 
 	# source in tools script
 	source tools.sh
@@ -148,6 +152,12 @@ function main() {
 
 	# delete accept name resolution rules
 	name_resolution '-D'
+
+	# overwrite name servers using value from env var 'NAME_SERVERS'
+	# Note we do this AFTER resolving vpn endpoints to permit name resolution
+	# of the vpn endpoints using whatever the host has defined, including
+	# local name servers - useful for pihole
+	add_name_servers
 
 	# run function from tools.sh to create global var 'docker_networking' used below
 	get_docker_networking
