@@ -94,11 +94,29 @@ function name_resolution() {
 
 	rule_flag="${1}"
 
-	# name resolution for ipv4
-	iptables "${rule_flag}" INPUT -p udp -m udp --sport 53 -j ACCEPT
-	iptables "${rule_flag}" OUTPUT -p udp -m udp --dport 53 -j ACCEPT
+	# permit queries to docker internal name server via any port
+	#
+	# note no port specified as docker randomises the port, run command 'iptables -L -v -t nat' to view docker internal
+	# chain showing randomised port
+	#
+	# decent article discussing docker dns https://alex-v.blog/2019/12/13/quirks-of-dns-traffic-with-docker-compose/
+	#
+	iptables "${rule_flag}" INPUT -s 127.0.0.11/32 -j ACCEPT
+	iptables "${rule_flag}" INPUT -d 127.0.0.11/32 -j ACCEPT
+
+	iptables "${rule_flag}" OUTPUT -s 127.0.0.11/32 -j ACCEPT
+	iptables "${rule_flag}" OUTPUT -d 127.0.0.11/32 -j ACCEPT
+
+	# permit name resolution on port 53 for any ip
+	#
+	# note no ip specified due to the fact that a user can specify the name servers via docker and the query will then be
+	# sent to 127.0.0.11 and forwarded onto the defined name servers
+	#
 	iptables "${rule_flag}" INPUT -p tcp -m tcp --sport 53 -j ACCEPT
+	iptables "${rule_flag}" INPUT -p udp -m udp --sport 53 -j ACCEPT
+
 	iptables "${rule_flag}" OUTPUT -p tcp -m tcp --dport 53 -j ACCEPT
+	iptables "${rule_flag}" OUTPUT -p udp -m udp --dport 53 -j ACCEPT
 
 }
 
@@ -144,8 +162,8 @@ function main() {
 	# source in tools script
 	source tools.sh
 
-	# append accept name resolution rules
-	name_resolution '-A'
+	# insert accept name resolution rules
+	name_resolution '-I'
 
 	# call function from tools.sh to resolve all vpn endpoints
 	resolve_vpn_endpoints
