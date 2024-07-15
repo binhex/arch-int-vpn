@@ -1,6 +1,6 @@
 FROM binhex/arch-base:latest
-LABEL org.opencontainers.image.authors = "binhex"
-LABEL org.opencontainers.image.source = "https://github.com/binhex/arch-int-vpn"
+LABEL org.opencontainers.image.authors="binhex"
+LABEL org.opencontainers.image.source="https://github.com/binhex/arch-int-vpn"
 
 # release tag name from buildx arg
 ARG RELEASETAG
