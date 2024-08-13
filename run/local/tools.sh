@@ -664,12 +664,17 @@ function pia_port_forward_check() {
 	jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
 
 	if [[ -z "${jq_query_result}" ]]; then
-		echo "[warn] PIA VPN info API currently down, skipping endpoint port forward check"
+		echo "[warn] PIA endpoint API '${pia_vpninfo_api}' currently down, skipping endpoint port forward check"
 		return 1
 	fi
 
 	# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
 	jq_query_details=$(echo "${jq_query_result}" | jq -r "${jq_query_portforward_enabled}" 2> /dev/null | xargs)
+
+	if [[ -z "${jq_query_details}" ]]; then
+		echo "[warn] Json query '${jq_query_portforward_enabled}' returns empty result for port forward enabled servers, skipping endpoint port forward check"
+		return 1
+	fi
 
 	# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
 	# grep -w = exact match (whole word), grep -q = quiet mode (no output)
