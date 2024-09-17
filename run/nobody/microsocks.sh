@@ -12,6 +12,10 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 	microsocks_cli="${microsocks_cli} -b ${vpn_ip}"
 fi
 
+if [[ "${DEBUG}" == "false" ]]; then
+	microsocks_cli="${microsocks_cli} -q"
+fi
+
 ${microsocks_cli} &
 
 echo "[info] microsocks process started"
