@@ -73,7 +73,12 @@ function get_docker_networking() {
 		docker_mask=$(ifconfig "${docker_interface}" | grep -P -o -m 1 '(?<=netmask\s)[^\s]+')
 
 		# convert netmask into cidr format, strip leading spaces
-		docker_network_cidr=$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+" | sed -e 's/^[[:space:]]*//')
+		if [[ "${docker_mask}" == "255.255.255.255" ]]; then
+			# edge case where ipcalc does not work for networks with a single host, so we specify the cidr mask manually
+			docker_network_cidr="${docker_ip}/32"
+		else
+			docker_network_cidr=$(ipcalc "${docker_ip}" "${docker_mask}" | grep -P -o -m 1 "(?<=Network:)\s+[^\s]+" | sed -e 's/^[[:space:]]*//')
+		fi
 
 		# append docker interface, gateway adapter, gateway ip, ip, mask and cidr to string
 		docker_networking+="${docker_interface},${default_gateway_adapter},${default_gateway_ip},${docker_ip},${docker_mask},${docker_network_cidr} "
