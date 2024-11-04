@@ -165,6 +165,16 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 			fi
 			echo "[info] WireGuard config file (conf extension) is located at ${VPN_CONFIG}" | ts '%Y-%m-%d %H:%M:%.S'
 
+			# restrict access to wireguard config file
+			set +e
+			chmod 600 "${VPN_CONFIG}" &> /dev/null
+			exit_code_chmod=$?
+			set -e
+
+			if (( ${exit_code_chmod} != 0 )); then
+				echo "[warn] Unable to chmod ${VPN_CONFIG}, assuming SMB mountpoint" | ts '%Y-%m-%d %H:%M:%.S'
+			fi
+
 			# convert CRLF (windows) to LF (unix) for wireguard conf file
 			/usr/local/bin/dos2unix.sh "${VPN_CONFIG}"
 
