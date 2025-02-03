@@ -169,7 +169,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 			/usr/local/bin/dos2unix.sh "${VPN_CONFIG}"
 
 			# get endpoint line from wireguard config file
-			export VPN_REMOTE_SERVER=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint(\s+)?=(\s+)?)[^:]+' || true)
+			export VPN_REMOTE_SERVER=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint(\s)?=(\s)?)[^:]+' || true)
 			if [[ -z "${VPN_REMOTE_SERVER}" ]]; then
 				echo "[crit] VPN configuration file ${VPN_CONFIG} does not contain 'Endpoint' line, showing contents of file before exit..." | ts '%Y-%m-%d %H:%M:%.S'
 				cat "${VPN_CONFIG}" && exit 1
@@ -179,7 +179,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 			if [[ "${VPN_PROV}" == "pia" ]]; then
 
-				export VPN_REMOTE_PORT=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint(\s+)?=(\s+)?).*' | grep -P -o '[\d]+$' || true)
+				export VPN_REMOTE_PORT=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint(\s)?=(\s)?).*' | grep -P -o '[\d]+$' || true)
 				if [[ -z "${VPN_REMOTE_PORT}" ]]; then
 					echo "[warn] VPN configuration file ${VPN_CONFIG} does not contain port on 'Endpoint' line, defaulting to '1337'" | ts '%Y-%m-%d %H:%M:%.S'
 					export VPN_REMOTE_PORT="1337"
@@ -187,7 +187,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
 			else
 
-				export VPN_REMOTE_PORT=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint(\s+)?=(\s+)?).*' | grep -P -o '[\d]+$' || true)
+				export VPN_REMOTE_PORT=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^Endpoint(\s)?=(\s)?).*' | grep -P -o '[\d]+$' || true)
 				if [[ -z "${VPN_REMOTE_PORT}" ]]; then
 					echo "[crit] VPN configuration file ${VPN_CONFIG} does not contain port on 'Endpoint' line, showing contents of file before exit..." | ts '%Y-%m-%d %H:%M:%.S'
 					cat "${VPN_CONFIG}" && exit 1
@@ -344,7 +344,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		echo "[info] NAME_SERVERS defined as '${NAME_SERVERS}'" | ts '%Y-%m-%d %H:%M:%.S'
 	else
 		echo "[warn] NAME_SERVERS not defined (via -e NAME_SERVERS), defaulting to name servers defined in readme.md" | ts '%Y-%m-%d %H:%M:%.S'
-		export NAME_SERVERS="84.200.69.80,37.235.1.174,1.1.1.1,37.235.1.177,84.200.70.40,1.0.0.1"
+		export NAME_SERVERS="1.1.1.1,1.0.0.1"
 	fi
 
 	# resolve vpn endpoints, drop all, allow vpn endpoints, if client pia then also allow pia api and pia website
