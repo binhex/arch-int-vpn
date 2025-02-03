@@ -47,7 +47,7 @@ pacman -S --needed $pacman_packages --noconfirm
 ####
 
 # download and compile microsocks
-github.sh --install-path "/tmp/compile" --github-owner "rofl0r" --github-repo "microsocks" --compile-src 'make install'
+github.sh --install-path '/tmp/compile' --github-owner 'rofl0r' --github-repo 'microsocks' --query-type 'release' --compile-src 'make install'
 
 # cargo (rust) install - boringtun-cli
 ####
