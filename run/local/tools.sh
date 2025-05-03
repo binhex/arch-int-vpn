@@ -117,6 +117,9 @@ function resolve_vpn_endpoints() {
 		# used to identify wireguard port for pia
 		vpn_remote_server_list+=(www.privateinternetaccess.com)
 
+		# used to identify wireguard port for pia alternative domain
+		vpn_remote_server_list+=(piaproxy.net)
+		
 		# used to retrieve list of port forward enabled endpoints for pia
 		vpn_remote_server_list+=(serverlist.piaservers.net)
 
@@ -151,7 +154,7 @@ function resolve_vpn_endpoints() {
 					# filter out pia website (used for wireguard token) and serverlist (used to generate list of endpoints
 					# with port forwarding enabled) as we do not need to rotate the ip for these and in fact rotating pia
 					# website breaks the ability to get the token
-					if [[ "${vpn_remote_item}" != "www.privateinternetaccess.com" && "${vpn_remote_item}" != "serverlist.piaservers.net" ]]; then
+					if [[ "${vpn_remote_item}" != "www.privateinternetaccess.com" && "${vpn_remote_item}" != "piaproxy.net" && "${vpn_remote_item}" != "serverlist.piaservers.net" ]]; then
 
 						# append endpoint name and ip addresses to associative array
 						vpn_remote_array+=( ["${vpn_remote_server}"]="${vpn_remote_ip_array[@]}" )
@@ -740,6 +743,13 @@ function pia_assign_incoming_port() {
 		# note binding to the vpn interface (using --interface flag for curl) is required
 		# due to users potentially using the 10.x.x.x range for lan, causing failure
 		token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://www.privateinternetaccess.com/gtoken/generateToken")
+
+		if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
+
+				# get token json response from an alternative domain if the other one fails
+				token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://piaproxy.net/gtoken/generateToken")
+
+		fi
 
 		if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
 
