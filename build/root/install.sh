@@ -59,6 +59,17 @@ cargo install boringtun-cli
 mv /home/nobody/.cargo/bin/boringtun-cli /usr/local/bin/
 chmod +x /usr/local/bin/boringtun-cli
 
+# custom
+#####
+
+# adding openssl to the list of packages to ignore during updates
+sed -i -e 's~#IgnorePkg.*~IgnorePkg = filesystem openssl~g' '/etc/pacman.conf'
+
+# this is a temporary downgrade of openssl to fix issues with v3.5.0, see https://github.com/binhex/arch-qbittorrentvpn/issues/322#issuecomment-2895206103
+curl -o /tmp/openssl.pkg.tar.zst -L https://archive.archlinux.org/packages/o/openssl/openssl-3.4.0-1-x86_64.pkg.tar.zst
+pacman -U --noconfirm /tmp/openssl.pkg.tar.zst
+rm /tmp/openssl.pkg.tar.zst
+
 # env vars
 ####
 
