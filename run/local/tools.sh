@@ -3,8 +3,14 @@
 # this function must be run as root as it overwrites /etc/hosts
 function round_robin_endpoint_ip() {
 
-	# get endpoint names
-	endpoint_name="${1}"
+	local endpoint_name="${1}"
+
+	local ip_address_count_array
+	local endpoint_ip_array
+	local current_ip
+	local current_ip_index_number
+	local next_ip
+	local index_number
 
 	# convert space separated ip's to array
 	IFS=" " read -r -a endpoint_ip_array <<< "$2"
@@ -48,6 +54,14 @@ function round_robin_endpoint_ip() {
 # format of net mask
 function get_docker_networking() {
 
+	local docker_mask
+	local docker_interfaces
+	local docker_interface
+	local docker_ip
+	local docker_network_cidr
+	local default_gateway_adapter
+	local default_gateway_ip
+
 	# get space seperated list of docker adapters, excluding loopback and vpn adapter
 	docker_interfaces=$(ip link show | grep -v 'state DOWN' | cut -d ' ' -f 2 | grep -P -o '^[^@:]+' | grep -P -v "^(lo|${VPN_DEVICE_TYPE})$" | xargs)
 
@@ -56,7 +70,7 @@ function get_docker_networking() {
 		exit 1
 	fi
 
-	docker_networking=""
+	DOCKER_NETWORKING=""
 
 	for docker_interface in ${docker_interfaces}; do
 
@@ -81,15 +95,15 @@ function get_docker_networking() {
 		fi
 
 		# append docker interface, gateway adapter, gateway ip, ip, mask and cidr to string
-		docker_networking+="${docker_interface},${default_gateway_adapter},${default_gateway_ip},${docker_ip},${docker_mask},${docker_network_cidr} "
+		DOCKER_NETWORKING+="${docker_interface},${default_gateway_adapter},${default_gateway_ip},${docker_ip},${docker_mask},${docker_network_cidr} "
 
 	done
 
 	# remove trailing space
-	docker_networking=$(echo "${docker_networking}" | sed -e 's/[[:space:]]*$//')
+	DOCKER_NETWORKING="${DOCKER_NETWORKING%"${DOCKER_NETWORKING##*[![:space:]]}"}"
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Docker interface name, Gateway interface name, Gateway IP, Docker interface IP, Subnet mask and CIDR are defined as '${docker_networking}'" | ts '%Y-%m-%d %H:%M:%.S'
+		echo "[debug] Docker interface name, Gateway interface name, Gateway IP, Docker interface IP, Subnet mask and CIDR are defined as '${DOCKER_NETWORKING}'" | ts '%Y-%m-%d %H:%M:%.S'
 	fi
 
 }
@@ -99,6 +113,13 @@ function get_docker_networking() {
 # endpoints that we may connect to.
 # this function must be run as root as it overwrites /etc/hosts
 function resolve_vpn_endpoints() {
+
+	local vpn_remote_server_list
+	local vpn_remote_server
+	local vpn_remote_item
+	local vpn_remote_item_dns_answer
+	local vpn_remote_ip_array
+	local vpn_remote_array
 
 	# split comma separated string into list from VPN_REMOTE_SERVER variable
 	# shellcheck disable=SC2153
@@ -116,6 +137,9 @@ function resolve_vpn_endpoints() {
 
 		# used to identify wireguard port for pia
 		vpn_remote_server_list+=(www.privateinternetaccess.com)
+
+		# used to identify wireguard port for pia (proxy alternative)
+		vpn_remote_server_list+=(piaproxy.net)
 
 		# used to retrieve list of port forward enabled endpoints for pia
 		vpn_remote_server_list+=(serverlist.piaservers.net)
@@ -210,6 +234,7 @@ function get_vpn_adapter_ip() {
 	fi
 
 	# loop and wait until tunnel adapter local ip is valid
+	# TODO should be caps as its used by multiple scripts and change name to VPN_ADAPTER_IP, but this touches a lot of scripts.
 	vpn_ip=""
 	while ! check_valid_ip "${vpn_ip}"; do
 
@@ -219,7 +244,7 @@ function get_vpn_adapter_ip() {
 	done
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Valid local IP address from tunnel acquired '${vpn_ip}'"
+		echo "[debug] Valid VPN adapter IP from tunnel acquired '${vpn_ip}'"
 	fi
 
 	# write ip address of vpn adapter to file, used in subsequent scripts
@@ -240,11 +265,11 @@ function get_vpn_gateway_ip() {
 	if [[ "${VPN_PROV}" == "protonvpn" ]]; then
 
 		# get gateway ip, used for openvpn and wireguard to get port forwarding working via getvpnport.sh
-		vpn_gateway_ip=""
-		while ! check_valid_ip "${vpn_gateway_ip}"; do
+		VPN_GATEWAY_IP=""
+		while ! check_valid_ip "${VPN_GATEWAY_IP}"; do
 
 			# use parameter expansion to convert last octet to 1 (gateway ip) from assigned vpn adapter ip
-			vpn_gateway_ip=${vpn_ip%.*}.1
+			VPN_GATEWAY_IP=${vpn_ip%.*}.1
 
 			sleep 1s
 
@@ -255,13 +280,13 @@ function get_vpn_gateway_ip() {
 	if [[ "${VPN_PROV}" == "pia" ]]; then
 
 		# if empty get gateway ip (openvpn clients), otherwise skip (defined in wireguard.sh)
-		if [[ -z "${vpn_gateway_ip}" ]]; then
+		if [[ -z "${VPN_GATEWAY_IP}" ]]; then
 
 			# get gateway ip, used for openvpn and wireguard to get port forwarding working via getvpnport.sh
-			vpn_gateway_ip=""
-			while ! check_valid_ip "${vpn_gateway_ip}"; do
+			VPN_GATEWAY_IP=""
+			while ! check_valid_ip "${VPN_GATEWAY_IP}"; do
 
-				vpn_gateway_ip=$(ip route s t all | grep -m 1 "0.0.0.0/1 via .* dev ${VPN_DEVICE_TYPE}" | cut -d ' ' -f3)
+				VPN_GATEWAY_IP=$(ip route s t all | grep -m 1 "0.0.0.0/1 via .* dev ${VPN_DEVICE_TYPE}" | cut -d ' ' -f3)
 				sleep 1s
 
 			done
@@ -271,10 +296,8 @@ function get_vpn_gateway_ip() {
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] Valid gateway IP address from tunnel acquired '${vpn_gateway_ip}'"
+		echo "[debug] Valid VPN gateway IP address from tunnel acquired '${VPN_GATEWAY_IP}'"
 	fi
-
-	echo "${vpn_gateway_ip}" > '/tmp/getvpngatewayip'
 
 }
 
@@ -285,6 +308,10 @@ function get_vpn_gateway_ip() {
 function check_dns() {
 
 	local hostname="${1}"
+
+	local remote_dns_answer
+	local retry_count=12
+	local retry_wait=5
 
 	if [[ "${VPN_ENABLED}" == "yes" ]]; then
 
@@ -298,9 +325,6 @@ function check_dns() {
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] Checking we can resolve name '${hostname}' to address..."
 		fi
-
-		retry_count=12
-		retry_wait=5
 
 		while true; do
 
@@ -353,13 +377,16 @@ function check_dns() {
 # function to check incoming port is open (webscrape)
 function check_incoming_port_webscrape() {
 
-	incoming_port_check_url="${1}"
-	post_data="${2}"
-	regex_open="${3}"
-	regex_closed="${4}"
+	local incoming_port_check_url="${1}"
+	shift
+	local post_data="${1}"
+	shift
+	local regex_open="${1}"
+	shift
+	local regex_closed="${1}"
 
-	site_up="false"
-	port_open="false"
+	EXTERNAL_SITE_UP="false"
+	INCOMING_PORT_OPEN="false"
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Checking ${APPLICATION} incoming port '${!application_incoming_port}' is open, using external url '${incoming_port_check_url}'..."
@@ -371,8 +398,8 @@ function check_incoming_port_webscrape() {
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] ${APPLICATION} incoming port '${!application_incoming_port}' is open"
 		fi
-		site_up="true"
-		port_open="true"
+		EXTERNAL_SITE_UP="true"
+		INCOMING_PORT_OPEN="true"
 		return
 
 	else
@@ -381,7 +408,7 @@ function check_incoming_port_webscrape() {
 		if curl --connect-timeout 30 --max-time 120 --silent --data "${post_data}" -X POST "${incoming_port_check_url}" | grep -i -P "${regex_closed}" 1> /dev/null; then
 
 			echo "[info] ${APPLICATION} incoming port closed, marking for reconfigure"
-			site_up="true"
+			EXTERNAL_SITE_UP="true"
 			return
 
 		else
@@ -401,8 +428,8 @@ function check_incoming_port_json() {
 	incoming_port_check_url="${1}"
 	json_query="${2}"
 
-	site_up="false"
-	port_open="false"
+	EXTERNAL_SITE_UP="false"
+	INCOMING_PORT_OPEN="false"
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Checking ${APPLICATION} incoming port '${!application_incoming_port}' is open, using external url '${incoming_port_check_url}'..."
@@ -415,14 +442,14 @@ function check_incoming_port_json() {
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] ${APPLICATION} incoming port '${!application_incoming_port}' is open"
 		fi
-		site_up="true"
-		port_open="true"
+		EXTERNAL_SITE_UP="true"
+		INCOMING_PORT_OPEN="true"
 		return
 
 	elif [[ "${response}" == "false" ]]; then
 
 		echo "[info] ${APPLICATION} incoming port '${!application_incoming_port}' is closed, marking for reconfigure"
-		site_up="true"
+		EXTERNAL_SITE_UP="true"
 		return
 
 	else
@@ -452,12 +479,12 @@ function check_incoming_port() {
 	check_incoming_port_webscrape "https://canyouseeme.org/" "port=${!application_incoming_port}&submit=Check" "success.*?on port.*?${!application_incoming_port}" "error.*?on port.*?${!application_incoming_port}"
 
 	# if web scrape error/site down then try second site (json)
-	if [[ "${site_up}" == "false" ]]; then
+	if [[ "${EXTERNAL_SITE_UP}" == "false" ]]; then
 		check_incoming_port_json "https://ifconfig.co/port/${!application_incoming_port}" ".reachable"
 	fi
 
 	# if port down then mark as closed
-	if [[ "${port_open}" == "false" ]]; then
+	if [[ "${INCOMING_PORT_OPEN}" == "false" ]]; then
 		touch "/tmp/portclosed"
 		return
 	fi
@@ -505,7 +532,7 @@ function check_iptables() {
 # "/tmp/getvpnextip", created by function get_vpn_external_ip
 function check_vpn_external_ip() {
 
-	while [ ! -f /tmp/getvpnextip ]
+	while [ ! -f "/tmp/getvpnextip" ]
 	do
 		sleep 0.1s
 	done
@@ -519,7 +546,7 @@ function check_vpn_external_ip() {
 # "/tmp/getvpnip", created by function get_vpn_adapter_ip
 function check_vpn_tunnel_ip() {
 
-	while [ ! -f /tmp/getvpnip ]
+	while [ ! -f "/tmp/getvpnip" ]
 	do
 		sleep 0.1s
 	done
@@ -535,14 +562,13 @@ function check_vpn_incoming_port() {
 	# check that app requires port forwarding and vpn provider is pia
 	if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
 
-		vpn_port="/tmp/getvpnport"
-
-		while [ ! -f "${vpn_port}" ]
+		while [ ! -f "/tmp/getvpnport" ]
 		do
 			sleep 1s
 		done
 
-		VPN_INCOMING_PORT=$(<"${vpn_port}")
+		# get vpn tunnel ip address (file contents generated by tools.sh)
+		VPN_INCOMING_PORT=$(</tmp/getvpnport)
 
 	fi
 
@@ -551,7 +577,11 @@ function check_vpn_incoming_port() {
 # function to check ip address is in correct format
 function check_valid_ip() {
 
-	check_ip="$1"
+	local check_ip="${1}"
+
+	if [[ -z "${check_ip}" ]]; then
+		return 1
+	fi
 
 	# check if the format looks right
 	echo "${check_ip}" | grep -qE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' || return 1
@@ -565,119 +595,83 @@ function check_valid_ip() {
 # function to get external ip using website lookup
 function get_external_ip_web() {
 
-	site="${1}"
+	local external_site_url="${1}"
+	local curl_connnect_timeout_secs=10
+	local curl_max_time_timeout_secs=30
 
-	external_ip="$(curl --connect-timeout "${curl_connnect_timeout_secs}" --max-time "${curl_max_time_timeout_secs}" --interface "${vpn_ip}" "${site}" 2> /dev/null | grep -P -o -m 1 '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
+	EXTERNAL_IP="$(curl --connect-timeout "${curl_connnect_timeout_secs}" --max-time "${curl_max_time_timeout_secs}" --interface "${vpn_ip}" "${external_site_url}" 2> /dev/null | grep -P -o -m 1 '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')"
 
-	check_valid_ip "${external_ip}"
-	return_code="$?"
-
-	# if empty value returned, or ip not in correct format then try primary url
-	if [[ -z "${external_ip}" || "${return_code}" != 0 ]]; then
-
-		echo "1"
-
-	else
-
-		# write external ip address to text file, this is then read by the downloader script
-		echo "${external_ip}" > /tmp/getvpnextip
-
-		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-		chmod +r /tmp/getvpnextip
-
-		echo "${external_ip}"
-
+	if ! check_valid_ip "${EXTERNAL_IP}"; then
+		return 1
 	fi
+
+	# write external ip address to text file, this is then read by the downloader script
+	echo "${EXTERNAL_IP}" > /tmp/getvpnextip
+
+	# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+	chmod +r /tmp/getvpnextip
 
 }
 
 function get_vpn_external_ip() {
 
-	# define timeout periods
-	curl_connnect_timeout_secs=10
-	curl_max_time_timeout_secs=30
+	local external_ip_urls_array=( "http://checkip.amazonaws.com" "http://whatismyip.akamai.com" "https://ifconfig.co/ip" "https://showextip.azurewebsites.net" )
 
 	if [[ -z "${vpn_ip}" ]]; then
 		echo "[warn] VPN IP address is not defined or is an empty string"
 		return 1
 	fi
 
-	site="http://checkip.amazonaws.com"
+	# get token json response, this is required for wireguard connection
+	for external_ip_url in "${external_ip_urls_array[@]}"; do
 
-	echo "[info] Attempting to get external IP using '${site}'..."
-	result=$(get_external_ip_web "${site}")
+		if ! get_external_ip_web "${external_ip_url}"; then
 
-	if [ "${result}" == "1" ]; then
+			echo "[warn] Cannot determine external IP address, trying next URL..."
+			continue
+		else
+			echo "[info] Successfully retrieved external IP address ${EXTERNAL_IP} from URL '${external_ip_url}'"
+			return 0
 
-		site="http://whatismyip.akamai.com"
+		fi
 
-		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
-		result=$(get_external_ip_web "${site}")
+	done
 
-	fi
+	echo "[warn] Cannot determine external IP address, performing tests before setting to '127.0.0.1'..."
+	echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
+	echo "[info] Show contents of hosts file" ; cat /etc/hosts
 
-	if [ "${result}" == "1" ]; then
+	# write external ip address to text file, this is then read by the downloader script
+	echo "127.0.0.1" > /tmp/getvpnextip
 
-		site="https://ifconfig.co/ip"
+	# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
+	chmod +r /tmp/getvpnextip
 
-		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
-		result=$(get_external_ip_web "${site}")
-
-	fi
-
-	if [ "${result}" == "1" ]; then
-
-		site="https://showextip.azurewebsites.net"
-
-		echo "[info] Failed on last attempt, attempting to get external IP using '${site}'..."
-		result=$(get_external_ip_web "${site}")
-
-	fi
-
-	if [ "${result}" == "1" ]; then
-
-		echo "[warn] Cannot determine external IP address, performing tests before setting to '127.0.0.1'..."
-		echo "[info] Show name servers defined for container" ; cat /etc/resolv.conf
-		echo "[info] Show contents of hosts file" ; cat /etc/hosts
-
-		# write external ip address to text file, this is then read by the downloader script
-		echo "127.0.0.1" > /tmp/getvpnextip
-
-		# chmod file to prevent restrictive umask causing read issues for user nobody (owner is user root)
-		chmod +r /tmp/getvpnextip
-
-		return 1
-
-	else
-
-		echo "[info] Successfully retrieved external IP address ${result}"
-		return 0
-
-	fi
+	return 1
 
 }
 
-#
-# port forwarding
-
 function pia_port_forward_check() {
+
+	local jq_query_details
+	local jq_query_result
 
 	echo "[info] Port forwarding is enabled"
 	echo "[info] Checking endpoint '${VPN_REMOTE_SERVER}' is port forward enabled..."
 
 	# run curl to grab api result
-	jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
+	jq_query_result=$(curl --silent --insecure "${PIA_VPNINFO_API}")
 
 	if [[ -z "${jq_query_result}" ]]; then
-		echo "[warn] PIA endpoint API '${pia_vpninfo_api}' currently down, skipping endpoint port forward check"
+		echo "[warn] PIA endpoint API '${PIA_VPNINFO_API}' currently down, skipping endpoint port forward check"
 		return 1
 	fi
 
 	# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
-	jq_query_details=$(echo "${jq_query_result}" | jq -r "${jq_query_portforward_enabled}" 2> /dev/null | xargs)
+	jq_query_details=$(echo "${jq_query_result}" | jq -r "${JQ_QUERY_PORT_FORWARD_ENABLED}" 2> /dev/null | xargs)
 
 	if [[ -z "${jq_query_details}" ]]; then
-		echo "[warn] Json query '${jq_query_portforward_enabled}' returns empty result for port forward enabled servers, skipping endpoint port forward check"
+		echo "[warn] Json query '${JQ_QUERY_PORT_FORWARD_ENABLED}' returns empty result for port forward enabled servers, skipping endpoint port forward check"
 		return 1
 	fi
 
@@ -701,11 +695,14 @@ function pia_port_forward_check() {
 
 function pia_port_forward_list() {
 
+	local jq_query_details
+	local jq_query_result
+
 	# run curl to grab api result
-	jq_query_result=$(curl --silent --insecure "${pia_vpninfo_api}")
+	jq_query_result=$(curl --silent --insecure "${PIA_VPNINFO_API}")
 
 	# run jq query to get endpoint name (dns) only, use xargs to turn into single line string
-	jq_query_details=$(echo "${jq_query_result}" | jq -r "${jq_query_portforward_enabled}" 2> /dev/null | xargs)
+	jq_query_details=$(echo "${jq_query_result}" | jq -r "${JQ_QUERY_PORT_FORWARD_ENABLED}" 2> /dev/null | xargs)
 
 	# convert to list with separator being space
 	IFS=' ' read -ra jq_query_details_list <<< "${jq_query_details}"
@@ -719,48 +716,71 @@ function pia_port_forward_list() {
 
 }
 
-function pia_assign_incoming_port() {
+function pia_generate_token() {
 
-	retry_count=12
-	retry_wait_secs=10
+	local pia_generate_token_url_array=( "https://www.privateinternetaccess.com/gtoken/generateToken" "https://piaproxy.net/gtoken/generateToken" )
 
-	# run function from tools.sh
-	get_vpn_gateway_ip
+	local retry_count=12
+	local retry_wait_secs=10
+	local token_json_response
+	local result='false'
 
 	while true; do
 
-		if [ "${retry_count}" -eq "0" ]; then
-
-			echo "[warn] Unable to download PIA json to generate token for port forwarding, creating file '/tmp/portfailure' to indicate failure..."
-			touch "/tmp/portfailure" && chmod +r "/tmp/portfailure" ; return 1
-
+		if [[ "${retry_count}" -eq "0" ]]; then
+			return 1
 		fi
 
-		# get token json response AFTER vpn established
-		# note binding to the vpn interface (using --interface flag for curl) is required
-		# due to users potentially using the 10.x.x.x range for lan, causing failure
-		token_json_response=$(curl --interface "${VPN_DEVICE_TYPE}" --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://www.privateinternetaccess.com/gtoken/generateToken")
+		# get token json response, this is required for wireguard connection
+		for pia_generate_token_url in "${pia_generate_token_url_array[@]}"; do
 
-		if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
+			token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "${pia_generate_token_url}")
 
-			echo "[warn] Unable to successfully download PIA json to generate token from URL 'https://www.privateinternetaccess.com/gtoken/generateToken'"
+			if [ "$(echo "${token_json_response}" | jq -r '.status')" == "OK" ]; then
+
+				echo "[info] Successfully downloaded PIA json to generate token for wireguard from URL '${pia_generate_token_url}'"
+				PIA_GENERATE_TOKEN=$(echo "${token_json_response}" | jq -r '.token')
+
+				if [[ -n "${PIA_GENERATE_TOKEN}" ]]; then
+					echo "[info] Successfully generated PIA token for wireguard"
+					result='true'
+					break
+				else
+					echo "[warn] PIA token not generated successfully (empty)"
+					return 1
+				fi
+
+			else
+
+				echo "[warn] Failed to download PIA json to generate token for wireguard from URL '${pia_generate_token_url}'"
+				return 1
+
+			fi
+
 			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
 			retry_count=$((retry_count-1))
 			sleep "${retry_wait_secs}"s & wait $!
 
-		else
+		done
 
-			# get token
-			token=$(echo "${token_json_response}" | jq -r '.token')
-
-			# reset retry count on successful step
-			retry_count=12
+		if [[ "${result}" == "true" ]]; then
 			break
-
 		fi
 
 	done
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] PIA generated 'token' for wireguard is '${PIA_GENERATE_TOKEN}'"
+	fi
+
+}
+
+function pia_payload_and_signature() {
+
+	local retry_count=12
+	local retry_wait_secs=10
+	local payload_and_sig
 
 	while true; do
 
@@ -773,11 +793,11 @@ function pia_assign_incoming_port() {
 
 		# get payload and signature
 		# note use of urlencode, this is required, otherwise login failure can occur
-		payload_and_sig=$(curl --interface "${VPN_DEVICE_TYPE}" --insecure --silent --max-time 5 --get --data-urlencode "token=${token}" "https://${vpn_gateway_ip}:19999/getSignature")
+		payload_and_sig=$(curl --interface "${VPN_DEVICE_TYPE}" --insecure --silent --max-time 5 --get --data-urlencode "token=${PIA_GENERATE_TOKEN}" "https://${VPN_GATEWAY_IP}:19999/getSignature")
 
 		if [ "$(echo "${payload_and_sig}" | jq -r '.status')" != "OK" ]; then
 
-			echo "[warn] Unable to successfully download PIA json payload from URL 'https://${vpn_gateway_ip}:19999/getSignature' using token '${token}'"
+			echo "[warn] Unable to successfully download PIA json payload from URL 'https://${VPN_GATEWAY_IP}:19999/getSignature' using token '${PIA_GENERATE_TOKEN}'"
 			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
 			retry_count=$((retry_count-1))
@@ -793,22 +813,41 @@ function pia_assign_incoming_port() {
 
 	done
 
-	payload=$(echo "${payload_and_sig}" | jq -r '.payload')
-	signature=$(echo "${payload_and_sig}" | jq -r '.signature')
+	PAYLOAD=$(echo "${payload_and_sig}" | jq -r '.payload')
+	SIGNATURE=$(echo "${payload_and_sig}" | jq -r '.signature')
+
+
+}
+function pia_assign_incoming_port() {
+
+	local retry_count=12
+	local retry_wait_secs=10
+	local payload_decoded
+	local expires_at
+	local pia_incoming_port
+
+	# generate token, used to get payload and signature
+	if ! pia_generate_token; then
+		echo "[warn] Unable to generate token for port forwarding, creating file '/tmp/portfailure' to indicate failure..."
+		touch "/tmp/portfailure" && chmod +r "/tmp/portfailure" ; return 1
+	fi
+
+	# get payload and signature
+	pia_payload_and_signature
 
 	# decode payload to get port, and expires date (2 months)
-	payload_decoded=$(echo "${payload}" | base64 -d | jq)
+	payload_decoded=$(echo "${PAYLOAD}" | base64 -d | jq)
 
 	if [[ -n "${payload_decoded}" ]]; then
 
-		port=$(echo "${payload_decoded}" | jq -r '.port')
+		pia_incoming_port=$(echo "${payload_decoded}" | jq -r '.port')
 		# note expires_at time in this format'2020-11-24T22:12:07.627551124Z'
 		expires_at=$(echo "${payload_decoded}" | jq -r '.expires_at')
 
 		if [[ "${DEBUG}" == "true" ]]; then
 
-			echo "[debug] PIA generated 'token' for port forwarding is '${token}'"
-			echo "[debug] PIA assigned incoming port is'${port}'"
+			echo "[debug] PIA generated 'token' for port forwarding is '${PIA_GENERATE_TOKEN}'"
+			echo "[debug] PIA assigned incoming port is '${pia_incoming_port}'"
 			echo "[debug] PIA port forward assigned expires on '${expires_at}'"
 
 		fi
@@ -820,19 +859,14 @@ function pia_assign_incoming_port() {
 
 	fi
 
-	if [[ "${port}" =~ ^-?[0-9]+$ ]]; then
+	if [[ "${pia_incoming_port}" =~ ^-?[0-9]+$ ]]; then
 
 		# write port number to text file (read by downloader script)
-		echo "${port}" > /tmp/getvpnport
-
-		# if /shared directory exists then copy from /tmp/getvpnport
-		if [[ -d '/shared' ]]; then
-			cp -f /tmp/getvpnport /shared/getvpnport
-		fi
+		echo "${pia_incoming_port}" > /tmp/getvpnport
 
 	else
 
-		echo "[warn] Incoming port assigned is not a decimal value '${port}', creating file '/tmp/portfailure' to indicate failure..."
+		echo "[warn] Incoming port assigned is not a decimal value '${pia_incoming_port}', creating file '/tmp/portfailure' to indicate failure..."
 		touch "/tmp/portfailure" && chmod +r "/tmp/portfailure" ; return 1
 
 	fi
@@ -844,8 +878,9 @@ function pia_assign_incoming_port() {
 
 function pia_keep_incoming_port_alive() {
 
-	retry_count=12
-	retry_wait_secs=10
+	local retry_count=12
+	local retry_wait_secs=10
+	local bind_port
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Running infinite while loop to keep assigned incoming port for PIA live..."
@@ -855,17 +890,17 @@ function pia_keep_incoming_port_alive() {
 
 		if [ "${retry_count}" -eq "0" ]; then
 
-			echo "[warn] Unable to bind incoming port '${port}', creating file '/tmp/portfailure' to indicate failure..."
+			echo "[warn] Unable to bind incoming port, creating file '/tmp/portfailure' to indicate failure..."
 			touch "/tmp/portfailure" && chmod +r "/tmp/portfailure" ; return 1
 
 		fi
 
 		# note use of urlencode, this is required, otherwise login failure can occur
-		bind_port=$(curl --interface "${VPN_DEVICE_TYPE}" --insecure --silent --max-time 5 --get --data-urlencode "payload=${payload}" --data-urlencode "signature=${signature}" "https://${vpn_gateway_ip}:19999/bindPort")
+		bind_port=$(curl --interface "${VPN_DEVICE_TYPE}" --insecure --silent --max-time 5 --get --data-urlencode "payload=${PAYLOAD}" --data-urlencode "signature=${SIGNATURE}" "https://${VPN_GATEWAY_IP}:19999/bindPort")
 
 		if [ "$(echo "${bind_port}" | jq -r '.status')" != "OK" ]; then
 
-			echo "[warn] Unable to bind port using URL 'https://${vpn_gateway_ip}:19999/bindPort'"
+			echo "[warn] Unable to bind port using URL 'https://${VPN_GATEWAY_IP}:19999/bindPort'"
 			retry_count=$((retry_count-1))
 			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
@@ -879,7 +914,7 @@ function pia_keep_incoming_port_alive() {
 
 		fi
 
-		echo "[info] Successfully assigned and bound incoming port '${port}'"
+		echo "[info] Successfully assigned and bound incoming port"
 
 		# we need to poll AT LEAST every 15 minutes to keep the port open
 		sleep 10m & wait $!
@@ -900,7 +935,7 @@ function protonvpn_port_forward_check() {
 	fi
 
 	# check if endpoint is enabled for p2p
-	if ! natpmpc -g "${vpn_gateway_ip}"; then
+	if ! natpmpc -g "${VPN_GATEWAY_IP}"; then
 		echo "[warn] ProtonVPN endpoint '${VPN_REMOTE_SERVER}' is not enabled for P2P port forwarding, skipping port forward assignment..."
 		return 1
 	fi
@@ -909,6 +944,9 @@ function protonvpn_port_forward_check() {
 }
 
 function protonvpn_assign_incoming_port() {
+
+	local protonvpn_incoming_port
+	local protocol_list
 
 	if [[ "${DEBUG}" == "true" ]]; then
 		echo "[debug] Running infinite while loop to keep assigned incoming port for ProtonVPN live..."
@@ -921,8 +959,8 @@ function protonvpn_assign_incoming_port() {
 		for protocol in ${protocol_list}; do
 
 			# assign incoming port for udp/tcp
-			port=$(natpmpc -g "${vpn_gateway_ip}" -a 1 0 "${protocol}" 60 | grep -P -o -m 1 '(?<=Mapped public port\s)\d+')
-			if [ -z "${port}" ]; then
+			protonvpn_incoming_port=$(natpmpc -g "${VPN_GATEWAY_IP}" -a 1 0 "${protocol}" 60 | grep -P -o -m 1 '(?<=Mapped public port\s)\d+')
+			if [ -z "${protonvpn_incoming_port}" ]; then
 				echo "[warn] Unable to assign an incoming port for protocol ${protocol}, creating file '/tmp/portfailure' to indicate failure..."
 				touch "/tmp/portfailure" && chmod +r "/tmp/portfailure" ; return 1
 			fi
@@ -930,16 +968,11 @@ function protonvpn_assign_incoming_port() {
 		done
 
 		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] ProtonVPN assigned incoming port is '${port}'"
+			echo "[debug] ProtonVPN assigned incoming port is '${protonvpn_incoming_port}'"
 		fi
 
 		# write port number to text file (read by downloader script)
-		echo "${port}" > /tmp/getvpnport
-
-		# if /shared directory exists then copy from /tmp/getvpnport
-		if [[ -d '/shared' ]]; then
-			cp -f /tmp/getvpnport /shared/getvpnport
-		fi
+		echo "${protonvpn_incoming_port}" > /tmp/getvpnport
 
 		# we need to poll AT LEAST every 60 seconds to keep the port open
 		sleep 45s & wait $!
@@ -994,10 +1027,10 @@ function get_vpn_incoming_port() {
 			echo "${BASHPID}" > '/tmp/getvpnport.pid'
 
 			# pia api url for endpoint status (port forwarding enabled true|false)
-			pia_vpninfo_api="https://serverlist.piaservers.net/vpninfo/servers/v4"
+			PIA_VPNINFO_API="https://serverlist.piaservers.net/vpninfo/servers/v4"
 
 			# jq (json query tool) query to list port forward enabled servers by hostname (dns)
-			jq_query_portforward_enabled='.regions | .[] | select(.port_forward==true) | .dns'
+			JQ_QUERY_PORT_FORWARD_ENABLED='.regions | .[] | select(.port_forward==true) | .dns'
 
 			# check whether endpoint is enabled for port forwarding
 			if pia_port_forward_check; then

@@ -25,6 +25,7 @@ if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 fi
 
 # source in tools script
+# shellcheck source=../local/tools.sh
 source tools.sh
 
 # run function from tools.sh, this creates global var 'docker_networking' used below
@@ -68,9 +69,9 @@ for lan_network_item in "${lan_network_array[@]}"; do
 	# strip whitespace from start and end of lan_network_item
 	lan_network_item=$(echo "${lan_network_item}" | sed -e 's~^[ \t]*~~;s~[ \t]*$~~')
 
-	# read in docker_networking from tools.sh, get 2nd and third values in first list item
-	default_gateway_adapter="$(echo "${docker_networking}" | cut -d ',' -f 2 )"
-	default_gateway_ip="$(echo "${docker_networking}" | cut -d ',' -f 3 )"
+	# read in DOCKER_NETWORKING from tools.sh, get 2nd and third values in first list item
+	default_gateway_adapter="$(echo "${DOCKER_NETWORKING}" | cut -d ',' -f 2 )"
+	default_gateway_ip="$(echo "${DOCKER_NETWORKING}" | cut -d ',' -f 3 )"
 
 	echo "[info] Adding ${lan_network_item} as route via adapter ${default_gateway_adapter}"
 	ip route add "${lan_network_item}" via "${default_gateway_ip}" dev "${default_gateway_adapter}"
@@ -117,9 +118,9 @@ fi
 ###
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 	docker_network_cidr="$(echo "${docker_network}" | cut -d ',' -f 6 )"
 
@@ -143,9 +144,9 @@ for docker_network in ${docker_networking}; do
 done
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 
 	for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
@@ -162,9 +163,9 @@ for docker_network in ${docker_networking}; do
 done
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 	docker_network_cidr="$(echo "${docker_network}" | cut -d ',' -f 6 )"
 
@@ -205,9 +206,9 @@ iptables -A INPUT -i "${VPN_DEVICE_TYPE}" -j ACCEPT
 ###
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_network_cidr="$(echo "${docker_network}" | cut -d ',' -f 6 )"
 
 	# accept output to/from docker containers (172.x range is internal dhcp)
@@ -216,9 +217,9 @@ for docker_network in ${docker_networking}; do
 done
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 
 	# iterate over remote ip address array (from start.sh) and create accept rules
@@ -254,9 +255,9 @@ if [[ "${iptable_mangle_exit_code}" == 0 ]]; then
 fi
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 
 	for incoming_ports_ext_item in "${incoming_ports_ext_array[@]}"; do
@@ -273,9 +274,9 @@ for docker_network in ${docker_networking}; do
 done
 
 # loop over docker adapters
-for docker_network in ${docker_networking}; do
+for docker_network in ${DOCKER_NETWORKING}; do
 
-	# read in docker_networking from tools.sh
+	# read in DOCKER_NETWORKING from tools.sh
 	docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 	docker_network_cidr="$(echo "${docker_network}" | cut -d ',' -f 6 )"
 

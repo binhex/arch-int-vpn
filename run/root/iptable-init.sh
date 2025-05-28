@@ -15,9 +15,9 @@ function accept_vpn_endpoints() {
 	# convert list of ip's back into an array (cannot export arrays in bash)
 	IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
 
-	for docker_network in ${docker_networking}; do
+	for docker_network in ${DOCKER_NETWORKING}; do
 
-		# read in docker_networking from tools.sh
+		# read in DOCKER_NETWORKING from tools.sh
 		docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 
 		# iterate over remote ip address array and create accept rules
@@ -160,6 +160,7 @@ function main() {
 	drop_all_ipv6
 
 	# source in tools script
+	# shellcheck source=../local/tools.sh
 	source tools.sh
 
 	# insert accept name resolution rules

@@ -12,10 +12,10 @@ else
 	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
 		# if vpn username and password specified then write credentials to file (authentication maybe via keypair)
-		if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
+		if [[ -n "${VPN_USER}" && -n "${VPN_PASS}" ]]; then
 
 			# store credentials in separate file for authentication
-			if ! $(grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"); then
+			if ! grep -Fq "auth-user-pass credentials.conf" "${VPN_CONFIG}"; then
 				sed -i -e 's/auth-user-pass.*/auth-user-pass credentials.conf/g' "${VPN_CONFIG}"
 			fi
 
@@ -23,7 +23,7 @@ else
 
 			username_char_check=$(echo "${VPN_USER}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
 
-			if [[ ! -z "${username_char_check}" ]]; then
+			if [[ -n "${username_char_check}" ]]; then
 				echo "[warn] Username contains characters which could cause authentication issues, please consider changing this if possible"
 			fi
 
@@ -31,7 +31,7 @@ else
 
 			password_char_check=$(echo "${VPN_PASS}" | grep -P -o -m 1 '[^a-zA-Z0-9@]+')
 
-			if [[ ! -z "${password_char_check}" ]]; then
+			if [[ -n "${password_char_check}" ]]; then
 				echo "[warn] Password contains characters which could cause authentication issues, please consider changing this if possible"
 			fi
 
@@ -79,7 +79,7 @@ else
 		fi
 
 		# assign any matching ping options in ovpn file to variable (used to decide whether to specify --keealive option in openvpn.sh)
-		vpn_ping=$(cat "${VPN_CONFIG}" | grep -P -o -m 1 '^ping.*')
+		vpn_ping=$(grep -P -o -m 1 '^ping.*' < "${VPN_CONFIG}")
 
 		# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
 		sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
@@ -192,11 +192,13 @@ else
 	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
 		# start openvpn client
+		# shellcheck source=./openvpn.sh
 		source /root/openvpn.sh
 
 	elif [[ "${VPN_CLIENT}" == "wireguard" ]]; then
 
 		# start wireguard client
+		# shellcheck source=./wireguard.sh
 		source /root/wireguard.sh
 
 	fi

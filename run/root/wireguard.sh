@@ -8,59 +8,12 @@ function pia_create_wireguard_keys() {
 
 }
 
-function pia_generate_token() {
-
-	retry_count=12
-	retry_wait_secs=10
-
-	while true; do
-
-		if [[ "${retry_count}" -eq "0" ]]; then
-
-			if [[ "${VPN_CLIENT}" == "wireguard" ]]; then
-
-				echo "[crit] Unable to successfully download PIA json to generate token for wireguard, exiting script..."
-				exit 1
-
-			fi
-
-		fi
-
-		# get token json response, this is required for wireguard connection
-		token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "https://www.privateinternetaccess.com/gtoken/generateToken")
-
-		if [ "$(echo "${token_json_response}" | jq -r '.status')" != "OK" ]; then
-
-			echo "[warn] Unable to successfully download PIA json to generate token for wireguard from URL 'https://www.privateinternetaccess.com/gtoken/generateToken'"
-			echo "[info] ${retry_count} retries left"
-			echo "[info] Retrying in ${retry_wait_secs} secs..."
-			retry_count=$((retry_count-1))
-			sleep "${retry_wait_secs}"s & wait $!
-
-		else
-
-			echo "[info] Token generated for PIA wireguard authentication"
-			token=$(echo "${token_json_response}" | jq -r '.token')
-			break
-
-		fi
-
-	done
-
-	if [[ "${DEBUG}" == "true" ]]; then
-
-		echo "[debug] PIA generated 'token' for wireguard is '${token}'"
-
-	fi
-
-}
-
 function pia_wireguard_authenticate() {
 
 	# authenticate via the pia wireguard restful api
 	# this will return json with data required for authentication.
 	echo "[info] Trying to connect to the PIA WireGuard API on '${VPN_REMOTE_SERVER}'..."
-	pia_wireguard_authentication_json=$(curl --silent --get --insecure --data-urlencode "pt=${token}" --data-urlencode "pubkey=${wireguard_public_key}" "https://${VPN_REMOTE_SERVER}:1337/addKey")
+	pia_wireguard_authentication_json=$(curl --silent --get --insecure --data-urlencode "pt=${PIA_GENERATE_TOKEN}" --data-urlencode "pubkey=${wireguard_public_key}" "https://${VPN_REMOTE_SERVER}:1337/addKey")
 
 }
 
@@ -75,13 +28,13 @@ function pia_get_wireguard_config() {
 
 	# this is the gateway ip for wireguard, this is required in tools.sh, which is called
 	# as part of the wireguardup.sh.
-	export vpn_gateway_ip=$(echo "$pia_wireguard_authentication_json" | jq -r '.server_vip')
+	export VPN_GATEWAY_IP=$(echo "$pia_wireguard_authentication_json" | jq -r '.server_vip')
 
 	if [[ "${DEBUG}" == "true" ]]; then
 
 		echo "[debug] PIA WireGuard 'peer ip' is '${pia_wireguard_peer_ip}'"
 		echo "[debug] PIA WireGuard 'server key' is '${pia_wireguard_server_key}'"
-		echo "[debug] PIA WireGuard 'server vip' (gsteway) is '${vpn_gateway_ip}'"
+		echo "[debug] PIA WireGuard 'server vip' (gsteway) is '${VPN_GATEWAY_IP}'"
 
 	fi
 
@@ -169,16 +122,15 @@ function watchdog() {
 
 		fi
 
-		# if flagged by above scripts then down vpn tunnel
-		if [ "${down}" == "true" ]; then
-			run_wireguard 'down'
+		# check if wireguard 'peer' exists, if not assume wireguard connection is down and bring up
+		if ! wg show | grep --quiet 'peer'; then
+			echo "[info] WireGuard 'peer' not found, attempting to cycle WireGuard interface..."
+			down="true"
 		fi
 
-		# check if wireguard 'peer' exists, if not assume wireguard connection is down and bring up
-		wg show | grep --quiet 'peer'
-		if [ "${?}"  -ne 0 ]; then
-
-			# run wireguard, will run as daemon background process
+		# if flagged by above scripts then cycle vpn tunnel
+		if [ "${down}" == "true" ]; then
+			run_wireguard 'down'
 			run_wireguard 'up'
 
 		fi
@@ -219,20 +171,21 @@ function run_wireguard() {
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] Running WireGuard userspace implementation 'boringtun-cli'..."
 		fi
-		WG_QUICK_USERSPACE_IMPLEMENTATION=boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"
+		if ! boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
+			echo "[warn] Failed to bring '${wireguard_action}' WireGuard userspace implementation 'boringtun-cli'"
+			return 1
+		fi
 	else
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] Running WireGuard kernel implementation..."
 		fi
-		wg-quick "${wireguard_action}" "${VPN_CONFIG}"
+		if ! wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
+			echo "[warn] Failed to bring '${wireguard_action}' WireGuard kernel implementation"
+			return 1
+		fi
 	fi
 
-	if [ "${?}" -eq 0 ]; then
-		echo "[info] WireGuard interface '${wireguard_action}'"
-	else
-		echo "[warn] WireGuard interface failed to come '${wireguard_action}', exit code is '${?}'"
-	fi
-
+	echo "[info] Successfully brought Wireguard interface '${wireguard_action}'"
 }
 
 function configure_wireguard() {
@@ -260,9 +213,11 @@ function configure_wireguard() {
 }
 
 # source in resolve dns and round robin ip's from functions
+# shellcheck source=../local/tools.sh
 source tools.sh
 
 # setup ip tables and routing for application
+# shellcheck source=./iptable.sh
 source '/root/iptable.sh'
 
 # start watchdog function
