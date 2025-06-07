@@ -2,49 +2,97 @@
 
 function pia_create_wireguard_keys() {
 
-	# create ephemeral wireguard private and public keys
-	wireguard_private_key=$(wg genkey)
-	wireguard_public_key=$(echo "${wireguard_private_key}" | wg pubkey)
+  # create ephemeral wireguard private and public keys
+  local wireguard_private_key
+  local wireguard_public_key
+
+  wireguard_private_key=$(wg genkey)
+  wireguard_public_key=$(echo "${wireguard_private_key}" | wg pubkey)
+
+  # Return both keys separated by a delimiter
+  echo "${wireguard_private_key}|${wireguard_public_key}"
+
+}
+
+function pia_wireguard_authenticate_single() {
+
+  local wireguard_public_key="${1}"
+  shift
+
+  echo "[info] Trying to connect to the PIA WireGuard API on '${VPN_REMOTE_SERVER}'..."
+
+  # authenticate via the pia wireguard restful api
+  local pia_wireguard_authentication_json
+  pia_wireguard_authentication_json=$(curl --silent --get --insecure --data-urlencode "pt=${PIA_GENERATE_TOKEN}" --data-urlencode "pubkey=${wireguard_public_key}" "https://${VPN_REMOTE_SERVER}:1337/addKey")
+
+  # check if authentication was successful (check for valid JSON response)
+  if [[ -n "${pia_wireguard_authentication_json}" ]] && echo "${pia_wireguard_authentication_json}" | jq . >/dev/null 2>&1; then
+    echo "[info] Successfully authenticated with PIA WireGuard API"
+    echo "${pia_wireguard_authentication_json}"
+    return 0
+  else
+    echo "[warn] Failed to authenticate with PIA WireGuard API"
+    return 1
+  fi
 
 }
 
 function pia_wireguard_authenticate() {
+  local wireguard_keys
+  local wireguard_public_key
 
-	# authenticate via the pia wireguard restful api
-	# this will return json with data required for authentication.
-	echo "[info] Trying to connect to the PIA WireGuard API on '${VPN_REMOTE_SERVER}'..."
-	pia_wireguard_authentication_json=$(curl --silent --get --insecure --data-urlencode "pt=${PIA_GENERATE_TOKEN}" --data-urlencode "pubkey=${wireguard_public_key}" "https://${VPN_REMOTE_SERVER}:1337/addKey")
+  wireguard_keys=$(pia_create_wireguard_keys)
+  wireguard_public_key=$(echo "${wireguard_keys}" | cut -d'|' -f2)
 
+  retry_infinitely pia_wireguard_authenticate_single 5 "${wireguard_public_key}"
 }
 
 function pia_get_wireguard_config() {
 
-	pia_wireguard_peer_ip=$(echo "${pia_wireguard_authentication_json}" | jq -r '.peer_ip')
-	pia_wireguard_server_key=$(echo "$pia_wireguard_authentication_json" | jq -r '.server_key')
+  local pia_wireguard_authentication_json="${1}"
+  shift
+  local pia_wireguard_peer_ip
+  local pia_wireguard_server_key
 
-	# commented line below is legacy method for getting server port, now moved to init.sh,
-	# but keeping the below line in case we need to switch to the previous method
-	#pia_wireguard_server_port=$(echo "$pia_wireguard_authentication_json" | jq -r '.server_port')
+  pia_wireguard_peer_ip=$(echo "${pia_wireguard_authentication_json}" | jq -r '.peer_ip')
+  pia_wireguard_server_key=$(echo "${pia_wireguard_authentication_json}" | jq -r '.server_key')
 
-	# this is the gateway ip for wireguard, this is required in tools.sh, which is called
-	# as part of the wireguardup.sh.
-	export VPN_GATEWAY_IP=$(echo "$pia_wireguard_authentication_json" | jq -r '.server_vip')
+  # commented line below is legacy method for getting server port, now moved to init.sh,
+  # but keeping the below line in case we need to switch to the previous method
+  #pia_wireguard_server_port=$(echo "${pia_wireguard_authentication_json}" | jq -r '.server_port')
 
-	if [[ "${DEBUG}" == "true" ]]; then
+  # this is the gateway ip for wireguard, this is required in tools.sh, which is called
+  # as part of the wireguardup.sh.
+  local vpn_gateway_ip
+  vpn_gateway_ip=$(echo "${pia_wireguard_authentication_json}" | jq -r '.server_vip')
+  export VPN_GATEWAY_IP="${vpn_gateway_ip}"
 
-		echo "[debug] PIA WireGuard 'peer ip' is '${pia_wireguard_peer_ip}'"
-		echo "[debug] PIA WireGuard 'server key' is '${pia_wireguard_server_key}'"
-		echo "[debug] PIA WireGuard 'server vip' (gsteway) is '${VPN_GATEWAY_IP}'"
+  if [[ "${DEBUG}" == "true" ]]; then
 
-	fi
+    echo "[debug] PIA WireGuard 'peer ip' is '${pia_wireguard_peer_ip}'"
+    echo "[debug] PIA WireGuard 'server key' is '${pia_wireguard_server_key}'"
+    echo "[debug] PIA WireGuard 'server vip' (gateway) is '${VPN_GATEWAY_IP}'"
+
+  fi
+
+  # Return both values separated by a delimiter
+  echo "${pia_wireguard_peer_ip}|${pia_wireguard_server_key}"
 
 }
 
 function pia_create_wireguard_config_file() {
 
-	# get pia wireguard server ip address for hostname using hosts
-	# file lookup (hosts file entry created in start.sh)
-	#pia_wireguard_server_ip=$(getent hosts "${VPN_REMOTE_SERVER}" | awk '{ print $1 }')
+  local wireguard_private_key="${1}"
+  shift
+  local pia_wireguard_peer_ip="${1}"
+  shift
+  local pia_wireguard_server_key="${1}"
+  shift
+
+  # get pia wireguard server ip address for hostname using hosts
+  # file lookup (hosts file entry created in start.sh)
+  #local pia_wireguard_server_ip
+  #pia_wireguard_server_ip=$(getent hosts "${VPN_REMOTE_SERVER}" | awk '{ print $1 }')
 
 cat <<EOF > "${VPN_CONFIG}"
 
@@ -65,150 +113,173 @@ EOF
 
 function watchdog() {
 
-	# loop and watch out for files generated by user nobody scripts that indicate failure
-	while true; do
+  # loop and watch out for files generated by user nobody scripts that indicate failure
+  while true; do
 
-		# reset flag, used to indicate connection status
-		down="false"
+    # reset flag, used to indicate connection status
+    local down="false"
 
-		# if '/tmp/portclosed' file exists (generated by /home/nobody/watchdog.sh when incoming port
-		# detected as closed) then down wireguard
-		if [ -f "/tmp/portclosed" ]; then
+    # if '/tmp/portclosed' file exists (generated by /home/nobody/watchdog.sh when incoming port
+    # detected as closed) then down wireguard
+    if [ -f "/tmp/portclosed" ]; then
 
-			echo "[info] Sending 'down' command to WireGuard due to port closed..."
-			down="true"
-			rm -f "/tmp/portclosed"
+      echo "[info] Sending 'down' command to WireGuard due to port closed..."
+      down="true"
+      rm -f "/tmp/portclosed"
 
-		fi
+    fi
 
-		# if '/tmp/dnsfailure' file exists (generated by tools.sh when dns fails)
-		# then down wireguard
-		if [ -f "/tmp/dnsfailure" ]; then
+    # if '/tmp/dnsfailure' file exists (generated by tools.sh when dns fails)
+    # then down wireguard
+    if [ -f "/tmp/dnsfailure" ]; then
 
-			echo "[info] Sending 'down' command to WireGuard due to dns failure..."
-			down="true"
-			rm -f "/tmp/dnsfailure"
+      echo "[info] Sending 'down' command to WireGuard due to dns failure..."
+      down="true"
+      rm -f "/tmp/dnsfailure"
 
-		fi
+    fi
 
-		# if '/tmp/portfailure' file exists (generated by tools.sh/get_vpn_incoming_port when incoming port
-		# allocation fails) then down wireguard
-		if [ -f "/tmp/portfailure" ]; then
+    # if '/tmp/portfailure' file exists (generated by tools.sh/get_vpn_incoming_port when incoming port
+    # allocation fails) then down wireguard
+    if [ -f "/tmp/portfailure" ]; then
 
-			echo "[info] Sending 'down' command to WireGuard due to incoming port allocation failure..."
-			down="true"
-			rm -f "/tmp/portfailure"
+      echo "[info] Sending 'down' command to WireGuard due to incoming port allocation failure..."
+      down="true"
+      rm -f "/tmp/portfailure"
 
-		fi
+    fi
 
-		if [ "${down}" == "true" ]; then
+    if [ "${down}" == "true" ]; then
 
-			if [ -f '/tmp/endpoints' ]; then
+      if [ -f '/tmp/endpoints' ]; then
 
-				# read in associative array of endpint names and ip addresses from file created from function resolve_vpn_endpoints in tools.sh
-				source '/tmp/endpoints'
+        # read in associative array of endpint names and ip addresses from file created from function resolve_vpn_endpoints in tools.sh
+        source '/tmp/endpoints'
 
-				for i in "${!vpn_remote_array[@]}"; do
+        local endpoint_name
+        local endpoint_ip_array
+        local i
 
-					endpoint_name="${i}"
-					endpoint_ip_array=( "${vpn_remote_array[$i]}" )
+        for i in "${!vpn_remote_array[@]}"; do
 
-					# run function to round robin the endpoint ip and write to /etc/hosts
-					round_robin_endpoint_ip "${endpoint_name}" "${endpoint_ip_array[@]}"
+          endpoint_name="${i}"
+          endpoint_ip_array=( "${vpn_remote_array[$i]}" )
 
-				done
+          # run function to round robin the endpoint ip and write to /etc/hosts
+          round_robin_endpoint_ip "${endpoint_name}" "${endpoint_ip_array[@]}"
 
-			fi
+        done
 
-		fi
+      fi
 
-		# check if wireguard 'peer' exists, if not assume wireguard connection is down and bring up
-		if ! wg show | grep --quiet 'peer'; then
-			echo "[info] WireGuard 'peer' not found, attempting to cycle WireGuard interface..."
-			down="true"
-		fi
+    fi
 
-		# if flagged by above scripts then cycle vpn tunnel
-		if [ "${down}" == "true" ]; then
-			run_wireguard 'down'
-			run_wireguard 'up'
+    # check if wireguard 'peer' exists, if not assume wireguard connection is down and bring up
+    if ! wg show | grep --quiet 'peer'; then
+      echo "[info] WireGuard 'peer' not found, attempting to cycle WireGuard interface..."
+      down="true"
+    fi
 
-		fi
+    # if flagged by above scripts then cycle vpn tunnel
+    if [ "${down}" == "true" ]; then
+      run_wireguard 'down'
+      run_wireguard 'up'
 
-		sleep 30s
+    fi
 
-	done
+    sleep 30s
+
+  done
 
 }
 
 function edit_wireguard() {
 
-	# delete any existing PostUp/PostDown scripts (cannot easily edit and replace lines without insertion)
-	sed -i -r '/.*PostUp = .*|.*PostDown = .*/d' "${VPN_CONFIG}"
+  # delete any existing PostUp/PostDown scripts (cannot easily edit and replace lines without insertion)
+  sed -i -r '/.*PostUp = .*|.*PostDown = .*/d' "${VPN_CONFIG}"
 
-	# insert PostUp/PostDown script lines after [Interface]
-	sed -i -e "/\[Interface\]/a PostUp = '/root/wireguardup.sh'\nPostDown = '/root/wireguarddown.sh'" "${VPN_CONFIG}"
+  # insert PostUp/PostDown script lines after [Interface]
+  sed -i -e "/\[Interface\]/a PostUp = '/root/wireguardup.sh'\nPostDown = '/root/wireguarddown.sh'" "${VPN_CONFIG}"
 
-	# removes all ipv6 address and port from wireguard config
-	sed -r -i -e 's/,?(\s+)?[a-f0-9]{4}::?[^,]+(\s+)?,?//g' "${VPN_CONFIG}"
+  # removes all ipv6 address and port from wireguard config
+  sed -r -i -e 's/,?(\s+)?[a-f0-9]{4}::?[^,]+(\s+)?,?//g' "${VPN_CONFIG}"
 
-	# removes all ipv6 port only from wireguard config
-	sed -r -i -e 's/,?(\s+)?::[^,]+(\s+)?,?//g' "${VPN_CONFIG}"
+  # removes all ipv6 port only from wireguard config
+  sed -r -i -e 's/,?(\s+)?::[^,]+(\s+)?,?//g' "${VPN_CONFIG}"
 
 }
 
 function run_wireguard() {
 
-	wireguard_action="${1}"
+  local wireguard_action="${1}"
+  shift
 
-	if [[ "${wireguard_action}" == 'up' ]]; then
-		configure_wireguard
-	fi
+  if [[ "${wireguard_action}" == 'up' ]]; then
+    configure_wireguard
+  fi
 
-	echo "[info] Attempting to bring WireGuard interface '${wireguard_action}'..."
+  echo "[info] Attempting to bring WireGuard interface '${wireguard_action}'..."
 
-	if [[ "${USERSPACE_WIREGUARD}" == 'yes' ]]; then
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Running WireGuard userspace implementation 'boringtun-cli'..."
-		fi
-		if ! boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
-			echo "[warn] Failed to bring '${wireguard_action}' WireGuard userspace implementation 'boringtun-cli'"
-			return 1
-		fi
-	else
-		if [[ "${DEBUG}" == "true" ]]; then
-			echo "[debug] Running WireGuard kernel implementation..."
-		fi
-		if ! wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
-			echo "[warn] Failed to bring '${wireguard_action}' WireGuard kernel implementation"
-			return 1
-		fi
-	fi
+  if [[ "${USERSPACE_WIREGUARD}" == 'yes' ]]; then
+    if [[ "${DEBUG}" == "true" ]]; then
+      echo "[debug] Running WireGuard userspace implementation 'boringtun-cli'..."
+    fi
+    if ! boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
+      echo "[warn] Failed to bring '${wireguard_action}' WireGuard userspace implementation 'boringtun-cli'"
+      return 1
+    fi
+  else
+    if [[ "${DEBUG}" == "true" ]]; then
+      echo "[debug] Running WireGuard kernel implementation..."
+    fi
+    if ! wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
+      echo "[warn] Failed to bring '${wireguard_action}' WireGuard kernel implementation"
+      return 1
+    fi
+  fi
 
-	echo "[info] Successfully brought Wireguard interface '${wireguard_action}'"
+  echo "[info] Successfully brought Wireguard interface '${wireguard_action}'"
 }
 
 function configure_wireguard() {
 
-	echo "[info] Configuring WireGuard..."
+  echo "[info] Configuring WireGuard..."
 
-	# if vpn provider is pia then get required dynamic configuration and write to wireguard config file
-	if [[ "${VPN_PROV}" == "pia" ]]; then
+  # if vpn provider is pia then get required dynamic configuration and write to wireguard config file
+  if [[ "${VPN_PROV}" == "pia" ]]; then
 
-		pia_create_wireguard_keys
-		pia_generate_token
-		pia_wireguard_authenticate
-		pia_get_wireguard_config
-		pia_create_wireguard_config_file
+    local wireguard_keys
+    local wireguard_private_key
+    local pia_wireguard_authentication_json
+    local wireguard_config_data
+    local pia_wireguard_peer_ip
+    local pia_wireguard_server_key
 
-	else
+    # Create keys and extract private key
+    wireguard_keys=$(pia_create_wireguard_keys)
+    wireguard_private_key=$(echo "${wireguard_keys}" | cut -d'|' -f1)
 
-		# edit wireguard config to remove ipv6, required for mullvad and possibly other non pia
-		# vpn providers
-		edit_wireguard
+    # Generate token (no return value needed, sets global PIA_GENERATE_TOKEN)
+    pia_generate_token
 
-	fi
+    # Authenticate and get JSON response
+    pia_wireguard_authentication_json=$(pia_wireguard_authenticate)
 
+    # Get config data (peer IP and server key)
+    wireguard_config_data=$(pia_get_wireguard_config "${pia_wireguard_authentication_json}")
+    pia_wireguard_peer_ip=$(echo "${wireguard_config_data}" | cut -d'|' -f1)
+    pia_wireguard_server_key=$(echo "${wireguard_config_data}" | cut -d'|' -f2)
+
+    # Create config file with all the data
+    pia_create_wireguard_config_file "${wireguard_private_key}" "${pia_wireguard_peer_ip}" "${pia_wireguard_server_key}"
+
+  else
+
+    # edit wireguard config to remove ipv6, required for mullvad and possibly other non pia
+    # vpn providers
+    edit_wireguard
+
+  fi
 
 }
 

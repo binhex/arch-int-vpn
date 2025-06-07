@@ -1,78 +1,105 @@
 #!/usr/bin/dumb-init /bin/bash
+# shellcheck shell=bash
 
-if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
+function setup_privoxy_config() {
+  mkdir -p /config/privoxy
 
-	mkdir -p /config/privoxy
+  if [[ ! -f "/config/privoxy/config" ]]; then
 
-	if [[ ! -f "/config/privoxy/config" ]]; then
+    echo "[info] Configuring Privoxy..."
+    cp -R /etc/privoxy/ /config/
 
-		echo "[info] Configuring Privoxy..."
-		cp -R /etc/privoxy/ /config/
+    sed -i -e "s~confdir /etc/privoxy~confdir /config/privoxy~g" /config/privoxy/config
+    sed -i -e "s~logdir /var/log/privoxy~logdir /config/privoxy~g" /config/privoxy/config
+    sed -i -e "s~listen-address.*~listen-address :8118~g" /config/privoxy/config
 
-		sed -i -e "s~confdir /etc/privoxy~confdir /config/privoxy~g" /config/privoxy/config
-		sed -i -e "s~logdir /var/log/privoxy~logdir /config/privoxy~g" /config/privoxy/config
-		sed -i -e "s~listen-address.*~listen-address :8118~g" /config/privoxy/config
+  fi
+}
 
-	fi
+function wait_for_privoxy_process() {
+  local retry_count=12
+  local retry_wait=1
 
-	if [[ "${privoxy_running}" == "false" ]]; then
+  while true; do
 
-		echo "[info] Attempting to start Privoxy..."
+    if ! pgrep -x "privoxy" > /dev/null; then
 
-		# run Privoxy (daemonized, non-blocking)
-		/usr/bin/privoxy /config/privoxy/config
+      retry_count=$((retry_count-1))
+      if [ "${retry_count}" -eq "0" ]; then
 
-		# make sure process privoxy DOES exist
-		retry_count=12
-		retry_wait=1
-		while true; do
+        echo "[warn] Wait for Privoxy process to start aborted, too many retries"
+        echo "[info] Showing output from command before exit..."
+        timeout 10 /usr/bin/privoxy /config/privoxy/config ; return 1
 
-			if ! pgrep -x "privoxy" > /dev/null; then
+      else
 
-				retry_count=$((retry_count-1))
-				if [ "${retry_count}" -eq "0" ]; then
+        if [[ "${DEBUG}" == "true" ]]; then
+          echo "[debug] Waiting for Privoxy process to start"
+          echo "[debug] Re-check in ${retry_wait} secs..."
+          echo "[debug] ${retry_count} retries left"
+        fi
+        sleep "${retry_wait}s"
 
-					echo "[warn] Wait for Privoxy process to start aborted, too many retries"
-					echo "[info] Showing output from command before exit..."
-					timeout 10 /usr/bin/privoxy /config/privoxy/config ; return 1
+      fi
 
-				else
+    else
 
-					if [[ "${DEBUG}" == "true" ]]; then
-						echo "[debug] Waiting for Privoxy process to start"
-						echo "[debug] Re-check in ${retry_wait} secs..."
-						echo "[debug] ${retry_count} retries left"
-					fi
-					sleep "${retry_wait}s"
+      echo "[info] Privoxy process started"
+      break
 
-				fi
+    fi
 
-			else
+  done
+}
 
-				echo "[info] Privoxy process started"
-				break
+function wait_for_privoxy_port() {
+  echo "[info] Waiting for Privoxy process to start listening on port 8118..."
 
-			fi
+  while [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".8118\"") == "" ]]; do
+    sleep 0.1
+  done
 
-		done
+  echo "[info] Privoxy process listening on port 8118"
+}
 
-		echo "[info] Waiting for Privoxy process to start listening on port 8118..."
+function start_privoxy() {
+  if ! pgrep -x "privoxy" > /dev/null; then
 
-		while [[ $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".8118\"") == "" ]]; do
-			sleep 0.1
-		done
+    echo "[info] Attempting to start Privoxy..."
 
-		echo "[info] Privoxy process listening on port 8118"
+    # run Privoxy (daemonized, non-blocking)
+    /usr/bin/privoxy /config/privoxy/config
 
-	fi
+    # make sure process privoxy DOES exist
+    wait_for_privoxy_process
+    wait_for_privoxy_port
 
-else
+  fi
+}
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[info] Privoxy set to disabled"
-	fi
+function configure_privoxy() {
+  if [[ "${ENABLE_PRIVOXY}" == "yes" ]]; then
 
-fi
+    setup_privoxy_config
+    start_privoxy
 
-# set privoxy ip to current vpn ip (used when checking for changes on next run)
-privoxy_ip="${vpn_ip}"
+  else
+
+    if [[ "${DEBUG}" == "true" ]]; then
+      echo "[info] Privoxy set to disabled"
+    fi
+
+  fi
+
+  # set privoxy ip to current vpn ip (used when checking for changes on next run)
+  local vpn_ip
+  vpn_ip=$(</tmp/getvpnip)
+  # shellcheck disable=SC2034  # privoxy_ip may be used for tracking state changes
+  local privoxy_ip="${vpn_ip}"
+}
+
+function main() {
+  configure_privoxy
+}
+
+main

@@ -3,6 +3,8 @@
 function accept_vpn_endpoints() {
 
 	local direction="${1}"
+	local io_flag
+	local srcdst_flag
 
 	if [[ "${direction}" == "input" ]]; then
 		io_flag="INPUT -i"
@@ -13,17 +15,20 @@ function accept_vpn_endpoints() {
 	fi
 
 	# convert list of ip's back into an array (cannot export arrays in bash)
+	local vpn_remote_ip_array
 	IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
 
 	for docker_network in ${DOCKER_NETWORKING}; do
 
 		# read in DOCKER_NETWORKING from tools.sh
+		local docker_interface
 		docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
 
 		# iterate over remote ip address array and create accept rules
 		for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
 
 			# note grep -e is required to indicate no flags follow to prevent -A from being incorrectly picked up
+			local rule_exists
 			rule_exists=$(iptables -S | grep -e "-A ${io_flag} ${docker_interface} ${srcdst_flag} ${vpn_remote_ip_item} -j ACCEPT" || true)
 
 			if [[ -z "${rule_exists}" ]]; then
@@ -92,7 +97,7 @@ function drop_all_ipv6() {
 
 function name_resolution() {
 
-	rule_flag="${1}"
+	local rule_flag="${1}"
 
 	# permit queries to docker internal name server via any port
 	#
@@ -123,6 +128,7 @@ function name_resolution() {
 function add_name_servers() {
 
 	# split comma separated string into list from NAME_SERVERS env variable
+	local name_server_list
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
 
 	if [[ "${DEBUG}" == "true" ]]; then
@@ -131,9 +137,10 @@ function add_name_servers() {
 	fi
 
 	# remove all existing name servers inherited from host
-	> /etc/resolv.conf
+	true > /etc/resolv.conf
 
 	# process name servers in the list
+	local name_server_item
 	for name_server_item in "${name_server_list[@]}"; do
 
 		# strip whitespace from start and end of name_server_item

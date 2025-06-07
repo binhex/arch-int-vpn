@@ -2,202 +2,216 @@
 
 function create_openvpn_cli() {
 
-	# define common command lne parameters for openvpn
-	openvpn_cli="/usr/bin/openvpn --reneg-sec 0 --mute-replay-warnings --auth-nocache --setenv VPN_PROV '${VPN_PROV}' --setenv VPN_CLIENT '${VPN_CLIENT}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_ENABLED '${VPN_ENABLED}' --setenv VPN_REMOTE_SERVER '${VPN_REMOTE_SERVER}' --setenv APPLICATION '${APPLICATION}' --script-security 2 --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'dhcp-option DNS6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec' --up /root/openvpnup.sh --up-delay --up-restart"
+  # define common command lne parameters for openvpn
+  # Note: openvpn_cli is used globally across functions, so not declared as local
+  openvpn_cli="/usr/bin/openvpn --reneg-sec 0 --mute-replay-warnings --auth-nocache --setenv VPN_PROV '${VPN_PROV}' --setenv VPN_CLIENT '${VPN_CLIENT}' --setenv DEBUG '${DEBUG}' --setenv VPN_DEVICE_TYPE '${VPN_DEVICE_TYPE}' --setenv VPN_ENABLED '${VPN_ENABLED}' --setenv VPN_REMOTE_SERVER '${VPN_REMOTE_SERVER}' --setenv APPLICATION '${APPLICATION}' --script-security 2 --writepid /root/openvpn.pid --remap-usr1 SIGHUP --log-append /dev/stdout --pull-filter ignore 'up' --pull-filter ignore 'down' --pull-filter ignore 'route-ipv6' --pull-filter ignore 'ifconfig-ipv6' --pull-filter ignore 'tun-ipv6' --pull-filter ignore 'dhcp-option DNS6' --pull-filter ignore 'persist-tun' --pull-filter ignore 'reneg-sec' --up /root/openvpnup.sh --up-delay --up-restart"
 
-	if [[ -z "${vpn_ping}" ]]; then
+  if [[ -z "${vpn_ping}" ]]; then
 
-		# if no ping options in the ovpn file then specify keepalive option
-		openvpn_cli="${openvpn_cli} --keepalive 10 60"
+    # if no ping options in the ovpn file then specify keepalive option
+    openvpn_cli="${openvpn_cli} --keepalive 10 60"
 
-	fi
+  fi
 
-	if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
+  if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
 
-		# add pia specific flags
-		openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD '${STRICT_PORT_FORWARD}' --setenv VPN_USER '${VPN_USER}' --setenv VPN_PASS '${VPN_PASS}' --down /root/openvpndown.sh --disable-occ"
+    # add pia specific flags
+    openvpn_cli="${openvpn_cli} --setenv STRICT_PORT_FORWARD '${STRICT_PORT_FORWARD}' --setenv VPN_USER '${VPN_USER}' --setenv VPN_PASS '${VPN_PASS}' --down /root/openvpndown.sh --disable-occ"
 
-	fi
+  fi
 
-	if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
+  if [[ -n "${VPN_USER}" && -n "${VPN_PASS}" ]]; then
 
-		# add additional flags to pass credentials
-		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
+    # add additional flags to pass credentials
+    openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
 
-	fi
+  fi
 
-	if [[ ! -z "${VPN_OPTIONS}" ]]; then
+  if [[ -n "${VPN_OPTIONS}" ]]; then
 
-		# add additional flags to openvpn cli
-		# note do not single/double quote the variable VPN_OPTIONS
-		openvpn_cli="${openvpn_cli} ${VPN_OPTIONS}"
+    # add additional flags to openvpn cli
+    # note do not single/double quote the variable VPN_OPTIONS
+    openvpn_cli="${openvpn_cli} ${VPN_OPTIONS}"
 
-	fi
+  fi
 
-	# finally add options specified in ovpn file
-	openvpn_cli="${openvpn_cli} --cd /config/openvpn --config '${VPN_CONFIG}'"
+  # finally add options specified in ovpn file
+  openvpn_cli="${openvpn_cli} --cd /config/openvpn --config '${VPN_CONFIG}'"
 
 }
 
 function add_remote_server_ip() {
 
-	# check answer is not blank, generated in start.sh, if it is blank assume bad ns or vpn remote is an ip address
-	if [[ ! -z "${VPN_REMOTE_IP}" ]]; then
+  # check answer is not blank, generated in start.sh, if it is blank assume bad ns or vpn remote is an ip address
+  if [[ -n "${VPN_REMOTE_IP}" ]]; then
 
-		# iterate through list of ip addresses and add each ip as a --remote option to ${openvpn_cli}
-		for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
-			openvpn_cli="${openvpn_cli} --remote ${vpn_remote_ip_item} ${VPN_REMOTE_PORT} ${VPN_REMOTE_PROTOCOL}"
-		done
+    # iterate through list of ip addresses and add each ip as a --remote option to ${openvpn_cli}
+    local vpn_remote_ip_item
+    for vpn_remote_ip_item in "${vpn_remote_ip_array[@]}"; do
+      openvpn_cli="${openvpn_cli} --remote ${vpn_remote_ip_item} ${VPN_REMOTE_PORT} ${VPN_REMOTE_PROTOCOL}"
+    done
 
-		# randomize the --remote option that openvpn will use to connect. this should help
-		# prevent getting stuck on a particular server should it become unstable/unavailable
-		openvpn_cli="${openvpn_cli} --remote-random"
+    # randomize the --remote option that openvpn will use to connect. this should help
+    # prevent getting stuck on a particular server should it become unstable/unavailable
+    openvpn_cli="${openvpn_cli} --remote-random"
 
-	fi
+  fi
 
 }
 
 function run_openvpn() {
 
-	create_openvpn_cli
-	add_remote_server_ip
+  create_openvpn_cli
+  add_remote_server_ip
 
-	if [[ "${DEBUG}" == "true" ]]; then
-		echo "[debug] OpenVPN command line:- ${openvpn_cli}"
-	fi
+  if [[ "${DEBUG}" == "true" ]]; then
+    echo "[debug] OpenVPN command line:- ${openvpn_cli}"
+  fi
 
-	echo "[info] Starting OpenVPN (non daemonised)..."
-	eval "${openvpn_cli}"
+  echo "[info] Starting OpenVPN (non daemonised)..."
+  eval "${openvpn_cli}"
 
 }
 
 function watchdog() {
 
-	# loop and watch out for files generated by user nobody scripts that indicate failure
-	while true; do
+  # loop and watch out for files generated by user nobody scripts that indicate failure
+  while true; do
 
-		# reset flag, used to indicate connection status
-		down="false"
+    # reset flag, used to indicate connection status
+    local down="false"
 
-		# if '/tmp/portclosed' file exists (generated by /home/nobody/watchdog.sh when incoming port
-		# detected as closed) then terminate openvpn
-		if [ -f "/tmp/portclosed" ];then
+    # if '/tmp/portclosed' file exists (generated by /home/nobody/watchdog.sh when incoming port
+    # detected as closed) then terminate openvpn
+    if [ -f "/tmp/portclosed" ];then
 
-			echo "[info] Sending SIGTERM (-15) to 'openvpn' due to port closed..."
-			down="true"
-			rm -f "/tmp/portclosed"
+      echo "[info] Sending SIGTERM (-15) to 'openvpn' due to port closed..."
+      down="true"
+      rm -f "/tmp/portclosed"
 
-		fi
+    fi
 
-		# if '/tmp/dnsfailure' file exists (generated by tools.sh when dns fails)
-		# then terminate openvpn
-		if [ -f "/tmp/dnsfailure" ];then
+    # if '/tmp/dnsfailure' file exists (generated by tools.sh when dns fails)
+    # then terminate openvpn
+    if [ -f "/tmp/dnsfailure" ];then
 
-			echo "[info] Sending SIGTERM (-15) to 'openvpn' due to dns failure..."
-			down="true"
-			rm -f "/tmp/dnsfailure"
+      echo "[info] Sending SIGTERM (-15) to 'openvpn' due to dns failure..."
+      down="true"
+      rm -f "/tmp/dnsfailure"
 
-		fi
+    fi
 
-		# if '/tmp/portfailure' file exists (generated by tools.sh when incoming port
-		# allocation fails) then terminate openvpn
-		if [ -f "/tmp/portfailure" ];then
+    # if '/tmp/portfailure' file exists (generated by tools.sh when incoming port
+    # allocation fails) then terminate openvpn
+    if [ -f "/tmp/portfailure" ];then
 
-			echo "[info] Sending SIGTERM (-15) to 'openvpn' due to incoming port allocation failure..."
-			down="true"
-			rm -f "/tmp/portfailure"
+      echo "[info] Sending SIGTERM (-15) to 'openvpn' due to incoming port allocation failure..."
+      down="true"
+      rm -f "/tmp/portfailure"
 
-		fi
+    fi
 
-		if [ "${down}" == "true" ]; then
+    if [ "${down}" == "true" ]; then
 
-			if [ -f '/tmp/endpoints' ]; then
+      if [ -f '/tmp/endpoints' ]; then
 
-				# read in associative array of endpint names and ip addresses from file created from function resolve_vpn_endpoints in tools.sh
-				source '/tmp/endpoints'
+        # read in associative array of endpint names and ip addresses from file created from function resolve_vpn_endpoints in tools.sh
+        source '/tmp/endpoints'
 
-				for i in "${!vpn_remote_array[@]}"; do
+        # check if vpn_remote_array was loaded from the file
+        # shellcheck disable=SC2154  # vpn_remote_array is defined by sourced file
+        if [[ -n "${vpn_remote_array+x}" ]]; then
+          local i
+          local endpoint_name
+          local endpoint_ip_array
+          for i in "${!vpn_remote_array[@]}"; do
 
-					endpoint_name="${i}"
-					endpoint_ip_array=( "${vpn_remote_array[$i]}" )
+            endpoint_name="${i}"
+            endpoint_ip_array=( "${vpn_remote_array[$i]}" )
 
-					# run function to round robin the endpoint ip and write to /etc/hosts
-					round_robin_endpoint_ip "${endpoint_name}" "${endpoint_ip_array[@]}"
+            # run function to round robin the endpoint ip and write to /etc/hosts
+            round_robin_endpoint_ip "${endpoint_name}" "${endpoint_ip_array[@]}"
 
-				done
+          done
+        fi
 
-			fi
+      fi
 
-		fi
+    fi
 
-		# if flagged by above scripts then down vpn tunnel
-		if [ "${down}" == "true" ]; then
-			pkill -SIGTERM "openvpn"
-		fi
+    # if flagged by above scripts then down vpn tunnel
+    if [ "${down}" == "true" ]; then
+      pkill -SIGTERM "openvpn"
+    fi
 
-		sleep 30s
+    sleep 30s
 
-	done
+  done
 
 }
 
 function start_openvpn() {
 
-	# set sleep period for recheck (in secs)
-	sleep_period_secs="30"
+  # split comma separated string into array from VPN_REMOTE_SERVER env var
+  local vpn_remote_server_list
+  IFS=',' read -ra vpn_remote_server_list <<< "${VPN_REMOTE_SERVER}"
 
-	# split comma separated string into array from VPN_REMOTE_SERVER env var
-	IFS=',' read -ra vpn_remote_server_list <<< "${VPN_REMOTE_SERVER}"
+  # split comma separated string into array from VPN_REMOTE_PORT env var
+  local vpn_remote_port_list
+  IFS=',' read -ra vpn_remote_port_list <<< "${VPN_REMOTE_PORT}"
 
-	# split comma separated string into array from VPN_REMOTE_PORT env var
-	IFS=',' read -ra vpn_remote_port_list <<< "${VPN_REMOTE_PORT}"
+  # split comma separated string into array from VPN_REMOTE_PROTOCOL env var
+  local vpn_remote_protocol_list
+  IFS=',' read -ra vpn_remote_protocol_list <<< "${VPN_REMOTE_PROTOCOL}"
 
-	# split comma separated string into array from VPN_REMOTE_PROTOCOL env var
-	IFS=',' read -ra vpn_remote_protocol_list <<< "${VPN_REMOTE_PROTOCOL}"
+  # convert list of ip's back into an array (cannot export arrays in bash)
+  IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
 
-	# convert list of ip's back into an array (cannot export arrays in bash)
-	IFS=' ' read -ra vpn_remote_ip_array <<< "${VPN_REMOTE_IP_LIST}"
+  # setup ip tables and routing for application
+  source /root/iptable.sh
 
-	# setup ip tables and routing for application
-	source /root/iptable.sh
+  # start background watchdog function
+  watchdog &
 
-	# start background watchdog function
-	watchdog &
+  # loop back around to top if run out of vpn remote servers
+  while true; do
 
-	# loop back around to top if run out of vpn remote servers
-	while true; do
+    # iterate over arrays and send to start_openvpn_cli function (blocking until openvpn process dies)
+    local index
+    for index in "${!vpn_remote_port_list[@]}"; do
 
-		# iterate over arrays and send to start_openvpn_cli function (blocking until openvpn process dies)
-		for index in "${!vpn_remote_port_list[@]}"; do
+      # required as this is passed via openvpn setenv to tools.sh script
+      # (checks endpoint is in list of port forward enabled endpoints)
+      VPN_REMOTE_SERVER="${vpn_remote_server_list[$index]}"
 
-			# required as this is passed via openvpn setenv to tools.sh script
-			# (checks endpoint is in list of port forward enabled endpoints)
-			VPN_REMOTE_SERVER="${vpn_remote_server_list[$index]}"
+      VPN_REMOTE_PORT="${vpn_remote_port_list[$index]}"
+      VPN_REMOTE_PROTOCOL="${vpn_remote_protocol_list[$index]}"
+      VPN_REMOTE_IP="${vpn_remote_ip_array[$index]}"
 
-			VPN_REMOTE_PORT="${vpn_remote_port_list[$index]}"
-			VPN_REMOTE_PROTOCOL="${vpn_remote_protocol_list[$index]}"
-			VPN_REMOTE_IP="${vpn_remote_ip_array[$index]}"
+      if [[ "${DEBUG}" == "true" ]]; then
 
-			if [[ "${DEBUG}" == "true" ]]; then
+        echo "[debug] VPN remote configuration options as follows..."
+        echo "[debug] VPN remote server is defined as '${VPN_REMOTE_SERVER}'"
+        echo "[debug] VPN remote port is defined as '${VPN_REMOTE_PORT}'"
+        echo "[debug] VPN remote protocol is defined as '${VPN_REMOTE_PROTOCOL}'"
+        echo "[debug] VPN remote ip is defined as '${VPN_REMOTE_IP}'"
 
-				echo "[debug] VPN remote configuration options as follows..."
-				echo "[debug] VPN remote server is defined as '${VPN_REMOTE_SERVER}'"
-				echo "[debug] VPN remote port is defined as '${VPN_REMOTE_PORT}'"
-				echo "[debug] VPN remote protocol is defined as '${VPN_REMOTE_PROTOCOL}'"
-				echo "[debug] VPN remote ip is defined as '${VPN_REMOTE_IP}'"
+      fi
 
-			fi
+      run_openvpn
 
-			run_openvpn
+    done
 
-		done
-
-	done
+  done
 
 }
 
-# source in resolve dns and round robin ip's from functions
-source tools.sh
+function main() {
+  # source in resolve dns and round robin ip's from functions
+  source tools.sh
 
-# start openvpn function
-start_openvpn
+  # start openvpn function
+  start_openvpn
+}
+
+main
