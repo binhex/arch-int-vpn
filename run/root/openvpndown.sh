@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function cleanup_port_forwarding() {
+function main() {
   if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
     if [ -f '/tmp/getvpnport.pid' ]; then
       # kill tools.sh/get_vpn_incoming_port on openvpn down, note use sig 15 not 2
@@ -8,16 +8,9 @@ function cleanup_port_forwarding() {
       rm -f '/tmp/getvpnport.pid'
     fi
   fi
-}
 
-function mark_tunnel_down() {
   # create file that denotes tunnel as down to prevent dns resolution check
   touch '/tmp/tunneldown' && chmod +r '/tmp/tunneldown'
 }
 
-function main() {
-  cleanup_port_forwarding
-  mark_tunnel_down
-}
-
-main
+main "$@"
