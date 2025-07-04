@@ -26,7 +26,7 @@ echo "INT_RELEASE_TAG=${RELEASETAG}" >> '/etc/image-release'
 ####
 
 # define pacman packages
-pacman_packages="base-devel cargo openssl-1.1 kmod openvpn privoxy bind-tools ipcalc wireguard-tools openresolv libnatpmp ldns"
+pacman_packages="base-devel rust openssl-1.1 kmod openvpn privoxy bind-tools ipcalc wireguard-tools openresolv libnatpmp ldns"
 
 # install pre-reqs
 pacman -S --needed $pacman_packages --noconfirm
