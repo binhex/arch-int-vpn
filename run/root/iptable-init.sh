@@ -122,6 +122,12 @@ function name_resolution() {
 
 function add_name_servers() {
 
+	# tells network manager explicitly to use resolvconf to manage /etc/resolv.conf
+	# see issue https://github.com/NetworkConfiguration/openresolv/issues/38#issuecomment-3018027369
+	mkdir -p '/etc/NetworkManager/conf.d'
+	echo "[main]" > '/etc/NetworkManager/conf.d/rc-manager.conf'
+	echo "rc-manager=resolvconf" >> '/etc/NetworkManager/conf.d/rc-manager.conf'
+
 	# split comma separated string into list from NAME_SERVERS env variable
 	IFS=',' read -ra name_server_list <<< "${NAME_SERVERS}"
 
