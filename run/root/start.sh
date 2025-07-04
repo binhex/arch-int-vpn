@@ -84,6 +84,12 @@ else
 		# forcibly set virtual network device to 'tun0/tap0' (referenced in iptables)
 		sed -i "s/^dev\s${VPN_DEVICE_TYPE}.*/dev ${VPN_DEVICE_TYPE}/g" "${VPN_CONFIG}"
 
+	elif [[ "${VPN_CLIENT}" == "wireguard" ]]; then
+
+		# remove DNS line from wireguard config if it exists
+		# this fixes issue https://github.com/NetworkConfiguration/openresolv/issues/38
+		sed -i '/^DNS\s=\s.*/d' "${VPN_CONFIG}"
+
 	fi
 
 	if [[ "${DEBUG}" == "true" ]]; then
