@@ -22,6 +22,12 @@ fi
 # write RELEASETAG to file to record the release tag used to build the image
 echo "INT_RELEASE_TAG=${RELEASETAG}" >> '/etc/image-release'
 
+# there is no package archive available for arm, thus we need to update to latest
+if [[ "${TARGETARCH}" == "arm64" ]]; then
+	# call pacman db and package updater script
+	source upd.sh
+fi
+
 # pacman packages
 ####
 
