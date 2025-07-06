@@ -88,7 +88,7 @@ else
 
 		# remove DNS line from wireguard config if it exists
 		# this fixes issue https://github.com/NetworkConfiguration/openresolv/issues/38
-		sed -i '/^DNS\s=\s.*/d' "${VPN_CONFIG}"
+		sed -i '/^DNS.*/d' "${VPN_CONFIG}"
 
 	fi
 
