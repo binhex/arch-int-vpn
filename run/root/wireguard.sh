@@ -171,7 +171,7 @@ function run_wireguard() {
 		if [[ "${DEBUG}" == "true" ]]; then
 			echo "[debug] Running WireGuard userspace implementation 'boringtun-cli'..."
 		fi
-		if ! boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
+		if ! WG_QUICK_USERSPACE_IMPLEMENTATION=boringtun-cli WG_SUDO=1 wg-quick "${wireguard_action}" "${VPN_CONFIG}"; then
 			echo "[warn] Failed to bring '${wireguard_action}' WireGuard userspace implementation 'boringtun-cli'"
 			return 1
 		fi
