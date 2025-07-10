@@ -28,6 +28,9 @@ if [[ "${TARGETARCH}" == "arm64" ]]; then
 	source upd.sh
 fi
 
+# ensure we have the latest builds scripts
+refresh.sh
+
 # pacman packages
 ####
 
