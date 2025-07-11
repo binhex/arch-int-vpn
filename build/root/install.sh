@@ -496,7 +496,7 @@ EOF
 sed -i '/# ENVVARS_COMMON_PLACEHOLDER/{
     s/# ENVVARS_COMMON_PLACEHOLDER//g
     r /tmp/envvars_common_heredoc
-}' /usr/local/bin/shell/docker/init.sh
+}' /usr/bin/init.sh
 rm /tmp/envvars_common_heredoc
 
 cat <<'EOF' > /tmp/config_heredoc
@@ -530,7 +530,7 @@ EOF
 sed -i '/# CONFIG_PLACEHOLDER/{
     s/# CONFIG_PLACEHOLDER//g
     r /tmp/config_heredoc
-}' /usr/local/bin/shell/docker/init.sh
+}' /usr/bin/init.sh
 rm /tmp/config_heredoc
 
 # cleanup
