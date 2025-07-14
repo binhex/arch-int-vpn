@@ -163,7 +163,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 			echo "[info] WireGuard config file (conf extension) is located at ${VPN_CONFIG}" | ts '%Y-%m-%d %H:%M:%.S'
 
 			# convert CRLF (windows) to LF (unix) for wireguard conf file
-			/usr/local/bin/dos2unix.sh "${VPN_CONFIG}"
+			dos2unix.sh "${VPN_CONFIG}"
 
 			# get endpoint line from wireguard config file
 			# note \K removes everything up to \K flag thus allowing variable lookbehind
@@ -246,7 +246,7 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		echo "[info] OpenVPN config file (ovpn extension) is located at ${VPN_CONFIG}" | ts '%Y-%m-%d %H:%M:%.S'
 
 		# convert CRLF (windows) to LF (unix) for ovpn
-		/usr/local/bin/dos2unix.sh "${VPN_CONFIG}"
+		dos2unix.sh "${VPN_CONFIG}"
 
 		# get all remote lines in ovpn file and save comma separated
 		vpn_remote_line=$(cat "${VPN_CONFIG}" | grep -P -o '(?<=^remote\s).*' | paste -s -d, - || true)
