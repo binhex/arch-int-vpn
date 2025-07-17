@@ -2,6 +2,9 @@ FROM binhex/arch-base:latest
 LABEL org.opencontainers.image.authors="binhex"
 LABEL org.opencontainers.image.source="https://github.com/binhex/arch-int-vpn"
 
+# app name from buildx arg
+ARG APPNAME
+
 # release tag name from buildx arg
 ARG RELEASETAG
 
@@ -28,4 +31,4 @@ ADD run/local/*.sh /usr/local/bin/
 
 # make executable and run bash scripts to install app
 RUN chmod +x /root/*.sh /home/nobody/*.sh /usr/local/bin/*.sh && \
-	/bin/bash /root/install.sh "${RELEASETAG}" "${TARGETARCH}"
+	/bin/bash /root/install.sh "${APPNAME}" "${RELEASETAG}" "${TARGETARCH}"
