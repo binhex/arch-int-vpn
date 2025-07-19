@@ -30,8 +30,7 @@ if [[ -z "${TARGETARCH}" ]]; then
 	exit 1
 fi
 
-# write APPNAME and RELEASETAG to file to record the app name and release tag used to build the image
-echo -e "export APPNAME=${APPNAME}\nexport IMAGE_RELEASE_TAG=${RELEASETAG}" >> '/etc/image-build-info'
+# note do NOT write APPNAME and RELEASETAG to file, as this is an intermediate image
 
 # there is no package archive available for arm, thus we need to update to latest
 if [[ "${TARGETARCH}" == "arm64" ]]; then
