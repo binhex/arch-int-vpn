@@ -44,6 +44,9 @@ refresh.sh
 # pacman packages
 ####
 
+# remove to ensure systemd-resolvconf will not conflict openresolved
+pacman -Rdd --noconfirm systemd-resolvconf || true
+
 # define pacman packages
 pacman_packages="base-devel rust openssl-1.1 kmod openvpn privoxy ipcalc wireguard-tools openresolv libnatpmp ldns"
 
