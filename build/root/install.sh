@@ -53,6 +53,8 @@ pacman -S --needed $pacman_packages --noconfirm
 # github release - microsocks
 ####
 
+mkdir -p /tmp/compile
+
 # download and compile microsocks
 github.sh --install-path '/tmp/compile' --github-owner 'rofl0r' --github-repo 'microsocks' --query-type 'release' --compile-src 'make install'
 
