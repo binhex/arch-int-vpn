@@ -134,33 +134,35 @@ else
 
 	if [[ "${VPN_CLIENT}" == "openvpn" ]]; then
 
-		# check if we have tun module available
-		check_tun_available=$(lsmod | grep tun)
+		if [ -c "/dev/net/tun" ]; then
 
-		# if tun module not available then try installing it
-		if [[ -z "${check_tun_available}" ]]; then
-			echo "[info] Attempting to load tun kernel module..."
-			/sbin/modprobe tun
+			echo "[info] TUN device already exists (passed through from Docker --device flag)"
+
+		else
+
+			echo "[info] TUN device not found, attempting to load tun kernel module..."
+			/sbin/modprobe tun 2> /dev/null
 			tun_module_exit_code=$?
 			if [[ $tun_module_exit_code != 0 ]]; then
 				echo "[warn] Unable to load tun kernel module using modprobe, trying insmod..."
-				insmod /lib/modules/tun.ko
+				insmod /lib/modules/tun.ko 2> /dev/null
 				tun_module_exit_code=$?
 				if [[ $tun_module_exit_code != 0 ]]; then
 					echo "[warn] Unable to load tun kernel module, assuming its dynamically loaded"
 				fi
 			fi
+
+			# create the tunnel device if not present (unraid users do not require this step)
+			mkdir -p /dev/net
+			[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
+			tun_create_exit_code=$?
+			if [[ $tun_create_exit_code != 0 ]]; then
+				echo "[crit] Unable to create tun device, please add '--device=/dev/net/tun' to your docker run command" ; exit 1
+			fi
+
 		fi
 
-		# create the tunnel device if not present (unraid users do not require this step)
-		mkdir -p /dev/net
-		[ -c "/dev/net/tun" ] || mknod "/dev/net/tun" c 10 200
-		tun_create_exit_code=$?
-		if [[ $tun_create_exit_code != 0 ]]; then
-			echo "[crit] Unable to create tun device, try adding docker container option '--device=/dev/net/tun'" ; exit 1
-		else
-			chmod 600 /dev/net/tun
-		fi
+		chmod 600 /dev/net/tun
 
 	fi
 
@@ -170,16 +172,16 @@ else
 	# if mangle module not available then try installing it
 	if [[ -z "${check_mangle_available}" ]]; then
 		echo "[info] Attempting to load iptable_mangle module..."
-		/sbin/modprobe iptable_mangle
+		/sbin/modprobe iptable_mangle 2> /dev/null
 		mangle_module_exit_code=$?
 		if [[ $mangle_module_exit_code != 0 ]]; then
 			echo "[warn] Unable to load iptable_mangle module using modprobe, trying insmod..."
-			insmod /lib/modules/iptable_mangle.ko
+			insmod /lib/modules/iptable_mangle.ko 2> /dev/null
 			mangle_module_exit_code=$?
 			if [[ $mangle_module_exit_code != 0 ]]; then
 				echo "[warn] Unable to load iptable_mangle module, you will not be able to connect to the applications Web UI or Privoxy outside of your LAN"
-				echo "[info] unRAID/Ubuntu users: Please attempt to load the module by executing the following on your host: '/sbin/modprobe iptable_mangle'"
-				echo "[info] Synology users: Please attempt to load the module by executing the following on your host: 'insmod /lib/modules/iptable_mangle.ko'"
+				echo "[info] If kernel 5.x+ then iptable_mangle may be built-in and this warning can be ignored"
+				echo "[info] Otherwise try loading the module on your host: '/sbin/modprobe iptable_mangle' or 'insmod /lib/modules/iptable_mangle.ko'"
 			fi
 		fi
 	fi
