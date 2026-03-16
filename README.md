@@ -47,6 +47,37 @@ N/A
 
 N/A, intermediate image used as a base for *VPN Docker Images.
 
+## Docker Configuration
+
+This image does not require `--privileged`. The minimum Docker options for each
+VPN client are:
+
+**WireGuard**
+
+```bash
+--cap-add=NET_ADMIN \
+--sysctl="net.ipv4.conf.all.src_valid_mark=1"
+```
+
+**OpenVPN**
+
+```bash
+--cap-add=NET_ADMIN \
+--device=/dev/net/tun
+```
+
+`--privileged=true` remains fully supported for backward compatibility.
+
+### USERSPACE_WIREGUARD
+
+Controls which WireGuard implementation is used. Accepted values:
+
+| Value  | Behavior |
+|--------|----------|
+| `auto` | (default) Auto-detect kernel WireGuard support, fall back to boringtun-cli if unavailable |
+| `yes`  | Force userspace implementation (boringtun-cli) |
+| `no`   | Force kernel implementation (requires kernel 5.6+ or wireguard-dkms) |
+
 ## Notes
 
 N/A
