@@ -146,6 +146,13 @@ function resolve_vpn_endpoints() {
 
 	fi
 
+	if [[ "${VPN_PROV}" == "privatevpn" ]]; then
+
+		# used to identify port forwarding for PrivateVpn
+		vpn_remote_server_list+=(connect.pvdatanet.com)
+
+	fi
+
 	# process remote servers in the array
 	for vpn_remote_item in "${vpn_remote_server_list[@]}"; do
 
@@ -559,8 +566,8 @@ function check_vpn_tunnel_ip() {
 # "/tmp/getvpnport", created by function get_vpn_incoming_port
 function check_vpn_incoming_port() {
 
-	# check that app requires port forwarding and vpn provider is pia
-	if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" ]]; then
+	# check that app requires port forwarding and vpn provider is supported
+	if [[ "${VPN_PROV}" == "pia" || "${VPN_PROV}" == "protonvpn" || "${VPN_PROV}" == "privatevpn" ]]; then
 
 		while [ ! -f "/tmp/getvpnport" ]
 		do
@@ -923,6 +930,63 @@ function pia_keep_incoming_port_alive() {
 
 }
 
+function privatevpn_port_forward_check() {
+
+	local jq_query_details
+	local jq_query_result
+
+	echo "[info] Port forwarding is enabled"
+	echo "[info] Checking if endpoint '${VPN_REMOTE_SERVER}' has port forward enabled..."
+
+	# run curl to grab api result
+	echo "[info] Quering PrivateVPN API: ${privatevpn_port_api}"
+	jq_query_result=$(curl --silent --insecure "${privatevpn_port_api}")
+
+	if [[ -z "${jq_query_result}" ]]; then
+		echo "[warn] PrivateVPN API '${privatevpn_port_api}' currently down, skipping endpoint port forward check"
+		return 1
+	fi
+
+	# run jq query to get supported status
+	jq_query_details=$(echo "${jq_query_result}" | jq -r ".supported" 2> /dev/null | xargs)
+	PRIVATEVPN_PORT_STATUS=$(echo "${jq_query_result}" | jq -r ".status" 2> /dev/null | xargs)
+
+	if [[ -z "${jq_query_details}" ]]; then
+		echo "[warn] PrivateVPN API returns empty result for port forward enabled servers, skipping endpoint port forward check"
+		return 1
+	elif [[ "${jq_query_details}" == "false" || "${PRIVATEVPN_PORT_STATUS}" == "Not supported" ]]; then
+		echo "[warn] PrivateVPN API returns port forward not supported, skipping endpoint port forward check"
+		return 1
+	fi
+
+	return 0
+}
+
+function privatevpn_assign_incoming_port() {
+
+	local privatevpn_incoming_port
+
+	# Status includes "Port 61618 UDP/TCP" or "ALL" for a dynamic public IP
+	privatevpn_incoming_port=$(echo ${PRIVATEVPN_PORT_STATUS} | cut -d " " -f 2)
+	if [[ "${privatevpn_incoming_port}" == "ALL" ]]; then
+		echo "[info] PrivateVPN provided a dynamic public IP, all ports forwarded so skipping port forward setting"
+		# create empty incoming port file (read by downloader script)
+		touch /tmp/getvpnport
+		return 1
+	elif [[ ! "${privatevpn_incoming_port}" =~ ^[0-9]+$ ]]; then
+		echo "[warn] PrivateVPN port is not an integer: ${privatevpn_incoming_port}, creating file '/tmp/portfailure' ..."
+		touch "/tmp/portfailure" && chmod +r "/tmp/portfailure"
+		return 1
+	fi
+
+	if [[ "${DEBUG}" == "true" ]]; then
+		echo "[debug] PrivateVPN assigned incoming port is '${privatevpn_incoming_port}'"
+	fi
+
+	# write port number to text file (read by downloader script)
+	echo "${privatevpn_incoming_port}" > /tmp/getvpnport
+}
+
 function protonvpn_port_forward_check() {
 
 	# run function from tools.sh
@@ -1037,6 +1101,35 @@ function get_vpn_incoming_port() {
 
 				# assign incoming port - blocking as in infinite while loop
 				pia_assign_incoming_port
+
+			fi
+
+			echo "[info] Script finished to assign incoming port"
+
+		fi
+
+	elif [[ "${VPN_PROV}" == "privatevpn" ]]; then
+
+		if [[ "${VPN_CLIENT}" == "wireguard" || "${STRICT_PORT_FORWARD}" == "no" ]]; then
+			echo "[info] Port forwarding is not enabled, or not supported (wireguard)"
+
+			# create empty incoming port file (read by downloader script)
+			touch /tmp/getvpnport
+
+		else
+			echo "[info] Script started to assign incoming port for '${VPN_PROV}'"
+
+			# write pid of this script to file, this file is then used to kill this script if openvpn/wireguard restarted/killed
+			echo "${BASHPID}" > '/tmp/getvpnport.pid'
+
+			# privatevpn api url for endpoint status (port forwarding enabled true|false)
+			privatevpn_port_api="https://connect.pvdatanet.com/v3/Api/port?ip[]=$(</tmp/getvpnip)"
+
+			# check whether endpoint is enabled for port forwarding
+			if privatevpn_port_forward_check; then
+
+				# assign incoming port, no need for blocking
+				privatevpn_assign_incoming_port
 
 			fi
 
