@@ -221,8 +221,8 @@ if [[ "${VPN_ENABLED}" == "yes" ]]; then
 		if [[ ! -z "${USERSPACE_WIREGUARD}" ]]; then
 			echo "[info] USERSPACE_WIREGUARD defined as '${USERSPACE_WIREGUARD}'" | ts '%Y-%m-%d %H:%M:%.S'
 		else
-			echo "[info] USERSPACE_WIREGUARD not defined (via -e USERSPACE_WIREGUARD), defaulting to 'no'" | ts '%Y-%m-%d %H:%M:%.S'
-			export USERSPACE_WIREGUARD="no"
+			echo "[info] USERSPACE_WIREGUARD not defined (via -e USERSPACE_WIREGUARD), defaulting to 'auto'" | ts '%Y-%m-%d %H:%M:%.S'
+			export USERSPACE_WIREGUARD="auto"
 		fi
 
 	elif [[ "${VPN_CLIENT}" == "openvpn" ]]; then

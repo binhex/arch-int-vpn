@@ -165,6 +165,18 @@ function run_wireguard() {
 		configure_wireguard
 	fi
 
+	# auto-detect kernel wireguard support if set to auto
+	if [[ "${USERSPACE_WIREGUARD}" == 'auto' && "${wireguard_action}" == 'up' ]]; then
+		if ip link add wgtest0 type wireguard 2> /dev/null; then
+			ip link delete wgtest0 2> /dev/null
+			echo "[info] Kernel WireGuard support detected, using kernel implementation"
+			USERSPACE_WIREGUARD="no"
+		else
+			echo "[info] Kernel WireGuard not available, falling back to userspace implementation (boringtun-cli)"
+			USERSPACE_WIREGUARD="yes"
+		fi
+	fi
+
 	echo "[info] Attempting to bring WireGuard interface '${wireguard_action}'..."
 
 	if [[ "${USERSPACE_WIREGUARD}" == 'yes' ]]; then
