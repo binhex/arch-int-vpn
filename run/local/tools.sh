@@ -718,7 +718,7 @@ function pia_port_forward_list() {
 
 function pia_generate_token() {
 
-	local pia_generate_token_url_array=( "https://www.privateinternetaccess.com/gtoken/generateToken" "https://piaproxy.net/gtoken/generateToken" )
+	local pia_generate_token_url_array=( "https://www.privateinternetaccess.com/api/client/v2/token" "https://piaproxy.net/api/client/v2/token" )
 
 	local retry_count=12
 	local retry_wait_secs=10
@@ -734,29 +734,18 @@ function pia_generate_token() {
 		# get token json response, this is required for wireguard connection
 		for pia_generate_token_url in "${pia_generate_token_url_array[@]}"; do
 
-			token_json_response=$(curl --silent --insecure -u "${VPN_USER}:${VPN_PASS}" "${pia_generate_token_url}")
+			# note --form-string (not --form), as --form treats a leading '@' or '<' in the password as a file to read
+			token_json_response=$(curl --silent --insecure --max-time 30 --form-string "username=${VPN_USER}" --form-string "password=${VPN_PASS}" "${pia_generate_token_url}")
 
-			if [ "$(echo "${token_json_response}" | jq -r '.status')" == "OK" ]; then
+			PIA_GENERATE_TOKEN=$(echo "${token_json_response}" | jq -r '.token // empty' 2> /dev/null)
 
-				echo "[info] Successfully downloaded PIA json to generate token for wireguard from URL '${pia_generate_token_url}'"
-				PIA_GENERATE_TOKEN=$(echo "${token_json_response}" | jq -r '.token')
-
-				if [[ -n "${PIA_GENERATE_TOKEN}" ]]; then
-					echo "[info] Successfully generated PIA token for wireguard"
-					result='true'
-					break
-				else
-					echo "[warn] PIA token not generated successfully (empty)"
-					return 1
-				fi
-
-			else
-
-				echo "[warn] Failed to download PIA json to generate token for wireguard from URL '${pia_generate_token_url}'"
-				return 1
-
+			if [[ -n "${PIA_GENERATE_TOKEN}" ]]; then
+				echo "[info] Successfully generated PIA token for wireguard from URL '${pia_generate_token_url}'"
+				result='true'
+				break
 			fi
 
+			echo "[warn] Failed to generate PIA token for wireguard from URL '${pia_generate_token_url}'"
 			echo "[info] ${retry_count} retries left"
 			echo "[info] Retrying in ${retry_wait_secs} secs..."
 			retry_count=$((retry_count-1))
