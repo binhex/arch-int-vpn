@@ -718,7 +718,7 @@ function pia_port_forward_list() {
 
 function pia_generate_token() {
 
-	local pia_generate_token_url_array=( "https://www.privateinternetaccess.com/api/client/v2/token" "https://www.privateinternetaccess.com/gtoken/generateToken" "https://piaproxy.net/gtoken/generateToken" )
+	local pia_generate_token_url_array=( "https://www.privateinternetaccess.com/api/client/v2/token" "https://piaproxy.net/api/client/v2/token" "https://www.privateinternetaccess.com/gtoken/generateToken" "https://piaproxy.net/gtoken/generateToken" )
 
 	local retry_count=12
 	local retry_wait_secs=10
@@ -735,7 +735,7 @@ function pia_generate_token() {
 		for pia_generate_token_url in "${pia_generate_token_url_array[@]}"; do
 
 			if [[ "${pia_generate_token_url}" == *"/api/client/v2/token" ]]; then
-				token_json_response=$(curl --silent --insecure --max-time 15 --request POST --form "username=${VPN_USER}" --form "password=${VPN_PASS}" "${pia_generate_token_url}")
+				token_json_response=$(curl --silent --insecure --max-time 15 --request POST --form-string "username=${VPN_USER}" --form-string "password=${VPN_PASS}" "${pia_generate_token_url}")
 			else
 				token_json_response=$(curl --silent --insecure --max-time 15 -u "${VPN_USER}:${VPN_PASS}" "${pia_generate_token_url}")
 			fi
