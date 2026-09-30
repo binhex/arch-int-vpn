@@ -31,6 +31,38 @@ source tools.sh
 # run function from tools.sh, this creates global var 'docker_networking' used below
 get_docker_networking
 
+# raw table: bypass conntrack for docker/podman network interfaces
+###
+
+# Container runtimes using netavark networking (podman) add a
+# "ct state invalid drop" rule to the host's nftables FORWARD chain.
+# The container's own conntrack processing can cause the host to
+# misclassify response packets (e.g. SYN-ACK) as "invalid", breaking
+# inbound connectivity from other containers such as reverse proxies.
+# Disabling conntrack for traffic on docker/podman network interfaces
+# prevents this conflict.  This is safe because the container's filter
+# rules for this traffic use explicit IP/port matching rather than
+# conntrack state.
+
+if iptables -t raw -L -n &>/dev/null; then
+
+	for docker_network in ${DOCKER_NETWORKING}; do
+
+		docker_interface="$(echo "${docker_network}" | cut -d ',' -f 1 )"
+
+		iptables -t raw -A PREROUTING -i "${docker_interface}" -j CT --notrack
+		iptables -t raw -A OUTPUT -o "${docker_interface}" -j CT --notrack
+
+	done
+
+	echo "[info] raw table notrack rules applied for docker/podman interfaces"
+
+else
+
+	echo "[warn] raw table not available, skipping notrack rules"
+
+fi
+
 # if vpn input ports specified then add to incoming ports external array
 if [[ -n "${VPN_INPUT_PORTS}" ]]; then
 
