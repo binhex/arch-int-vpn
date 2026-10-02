@@ -19,13 +19,6 @@ function create_openvpn_cli() {
 
 	fi
 
-	if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
-
-		# add additional flags to pass credentials
-		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
-
-	fi
-
 	if [[ ! -z "${VPN_OPTIONS}" ]]; then
 
 		# add additional flags to openvpn cli
@@ -34,8 +27,19 @@ function create_openvpn_cli() {
 
 	fi
 
-	# finally add options specified in ovpn file
+	# add options specified in ovpn file
 	openvpn_cli="${openvpn_cli} --cd /config/openvpn --config '${VPN_CONFIG}'"
+
+	if [[ ! -z "${VPN_USER}" && ! -z "${VPN_PASS}" ]]; then
+
+		# override any auth-user-pass directive from the config file with
+		# the credentials file written by start.sh.  This MUST come after
+		# --config so the CLI value wins (last occurrence takes precedence
+		# in OpenVPN).  OpenVPN >=2.7 fatally errors on a bare
+		# auth-user-pass without a file in non-interactive environments.
+		openvpn_cli="${openvpn_cli} --auth-user-pass credentials.conf"
+
+	fi
 
 }
 
