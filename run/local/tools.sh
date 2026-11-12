@@ -678,13 +678,17 @@ function pia_port_forward_check() {
 	# run grep to check that defined vpn remote is in the list of port forward enabled endpoints
 	# grep -w = exact match (whole word), grep -q = quiet mode (no output)
 	if echo "${jq_query_details}" | grep -qw "${VPN_REMOTE_SERVER}"; then
-
 		echo "[info] PIA endpoint '${VPN_REMOTE_SERVER}' is in the list of endpoints that support port forwarding shown below:-"
 		pia_port_forward_list
 		return 0
 
+	elif echo "${jq_query_details}" | grep -qF "$(echo $VPN_REMOTE_SERVER | cut -d'.' -f1)."; then
+		echo "[info] PIA endpoint '${VPN_REMOTE_SERVER}' is not in the list of endpoints that support port forwarding shown below,"\
+		"but a similar endpoint '$(echo "${jq_query_details}" | grep -oP "\w*$(echo $VPN_REMOTE_SERVER | cut -d'.' -f1).[^ ]+")' is.-"
+		pia_port_forward_list
+		return 0
+		
 	else
-
 		echo "[info] PIA endpoint '${VPN_REMOTE_SERVER}' is NOT in the list of endpoints that support port forwarding shown below:-"
 		pia_port_forward_list
 		return 1
